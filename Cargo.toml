@@ -1,0 +1,6 @@
+[package]
+name = "mqtt_rust"
+version = "0.1.0"
+authors = ["Todd Treece <todd@uniontownlabs.org>"]
+edition = "2018"
+[dependencies]
