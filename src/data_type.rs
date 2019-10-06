@@ -1,4 +1,6 @@
 use std::io;
+use std::io::prelude::*;
+use std::str;
 
 /**
  * 1.5 Data representation
@@ -84,9 +86,44 @@ impl TypeParser for FourByteInteger {
     }
 }
 
-// 1.5.4 UTF-8 Encoded String
-// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901010
-//pub type Utf8EncodedString = String;
+/**
+ * 1.5.4 UTF-8 Encoded String
+ * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901010
+ * Text fields within the MQTT Control Packets described later are encoded as
+ * UTF-8 strings. UTF-8 [RFC3629] is an efficient encoding of Unicode
+ * characters that optimizes the encoding of ASCII characters in support of
+ * text-based communications.
+ *
+ * Each of these strings is prefixed with a Two Byte Integer length field that
+ * gives the number of bytes in a UTF-8 encoded string itself, as illustrated
+ * in Figure 1.1 Structure of UTF-8 Encoded Strings below. Consequently, the
+ * maximum size of a UTF-8 Encoded String is 65,535 bytes.
+ *
+ * Unless stated otherwise all UTF-8 encoded strings can have any length in
+ * the range 0 to 65,535 bytes.
+ */
+pub type Utf8EncodedString = Type<String>;
+
+impl TypeParser for Utf8EncodedString {
+    fn new<R>(mut reader: R) -> Type<String>
+    where
+        R: io::Read,
+    {
+        // get the expected length of the string
+        let mut length_buffer = [0; 2];
+        reader.read(&mut length_buffer).expect("Reading error");
+        let length = u16::from_be_bytes(length_buffer);
+
+        // read the string
+        let mut handle = reader.take(u64::from(length));
+        let mut buffer = vec![];
+        handle.read_to_end(&mut buffer).expect("Reading error");
+
+        Type {
+            value: String::from_utf8(buffer).unwrap(),
+        }
+    }
+}
 
 // 1.5.5 Variable Byte Integer
 // https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901011
@@ -126,5 +163,16 @@ mod tests {
 
         let four = FourByteInteger::new(&*reader);
         assert_eq!(four.value, 16909060);
+    }
+
+    #[test]
+    fn utf8_string() {
+        let data: Vec<u8> = vec![
+            0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 100, 100, 100,
+        ];
+        let reader = io::BufReader::new(&*data);
+
+        let result = Utf8EncodedString::new(reader);
+        assert_eq!(result.value, "hello world");
     }
 }
