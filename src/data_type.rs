@@ -1,6 +1,5 @@
 use std::io;
 use std::io::prelude::*;
-use std::str;
 
 /**
  * 1.5 Data representation
@@ -31,7 +30,6 @@ impl TypeParser for Byte {
     {
         let mut buffer = [0; 1];
         reader.read(&mut buffer).expect("Reading error");
-        println!("{:x?}", buffer);
         Type {
             value: u8::from_be_bytes(buffer),
         }
@@ -125,9 +123,49 @@ impl TypeParser for Utf8EncodedString {
     }
 }
 
-// 1.5.5 Variable Byte Integer
-// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901011
-//pub type VariableByteInteger = i64;
+/**
+ * 1.5.5 Variable Byte Integer
+ * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901011
+ * The Variable Byte Integer is encoded using an encoding scheme which uses a
+ * single byte for values up to 127. Larger values are handled as follows. The
+ * least significant seven bits of each byte encode the data, and the most
+ * significant bit is used to indicate whether there are bytes following in
+ * the representation. Thus, each byte encodes 128 values and a "continuation
+ * bit". The maximum number of bytes in the Variable Byte Integer field is four.
+ * The encoded value MUST use the minimum number of bytes necessary to represent
+ * the value [MQTT-1.5.5-1]. This is shown in Table 1‑1 Size of Variable Byte
+ * Integer.
+ */
+pub type VariableByteInteger = Type<u64>;
+
+impl TypeParser for VariableByteInteger {
+    fn new<R>(mut reader: R) -> Type<u64>
+    where
+        R: io::Read,
+    {
+        let mut more: bool = true;
+        let mut multiplier: u64 = 1;
+        let mut value: u64 = 0;
+
+        while more {
+            let mut b = [0; 1];
+            reader.read(&mut b).expect("Reading error");
+            value = value + u64::from(b[0] & 127) * multiplier;
+
+            if multiplier > (128 * 128 * 128) {
+                panic!("Malformed VariableByteInteger");
+            }
+
+            multiplier = multiplier * 128;
+
+            if (b[0] & 128) == 0 {
+                more = false;
+            }
+        }
+
+        Type { value: value }
+    }
+}
 
 // 1.5.6 Binary Data
 // https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901012
@@ -143,24 +181,21 @@ mod tests {
 
     #[test]
     fn byte() {
-        let reader: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0a, 0x0b];
-
+        let reader: Vec<u8> = vec![0xFF, 0x02];
         let byte = Byte::new(&*reader);
-        assert_eq!(byte.value, 1);
+        assert_eq!(byte.value, 255);
     }
 
     #[test]
     fn two_byte() {
-        let reader: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0a, 0x0b];
-
+        let reader: Vec<u8> = vec![0x01, 0x02, 0x03];
         let two = TwoByteInteger::new(&*reader);
         assert_eq!(two.value, 258);
     }
 
     #[test]
     fn four_byte() {
-        let reader: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0a, 0x0b];
-
+        let reader: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05];
         let four = FourByteInteger::new(&*reader);
         assert_eq!(four.value, 16909060);
     }
@@ -170,9 +205,53 @@ mod tests {
         let data: Vec<u8> = vec![
             0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 100, 100, 100,
         ];
-        let reader = io::BufReader::new(&*data);
 
+        let reader = io::BufReader::new(&*data);
         let result = Utf8EncodedString::new(reader);
         assert_eq!(result.value, "hello world");
+    }
+
+    #[test]
+    fn variable_byte_one() {
+        let mut vari: Vec<u8> = vec![0x00];
+        let mut vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 0);
+
+        vari = vec![0x7F];
+        vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 127);
+    }
+
+    #[test]
+    fn variable_byte_two() {
+        let mut vari: Vec<u8> = vec![0x80, 0x01];
+        let mut vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 128);
+
+        vari = vec![0xFF, 0x7F];
+        vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 16383);
+    }
+
+    #[test]
+    fn variable_byte_three() {
+        let mut vari: Vec<u8> = vec![0x80, 0x80, 0x01];
+        let mut vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 16384);
+
+        vari = vec![0xFF, 0xFF, 0x7F];
+        vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 2097151);
+    }
+
+    #[test]
+    fn variable_byte_four() {
+        let mut vari: Vec<u8> = vec![0x80, 0x80, 0x80, 0x01];
+        let mut vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 2097152);
+
+        vari = vec![0xFF, 0xFF, 0xFF, 0x7F];
+        vari_type = VariableByteInteger::new(&*vari);
+        assert_eq!(vari_type.value, 268435455);
     }
 }
