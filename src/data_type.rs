@@ -102,23 +102,29 @@ impl TypeParser for FourByteInteger {
  */
 pub type Utf8EncodedString = Type<String>;
 
+fn parse_string<R>(mut reader: R) -> String
+where
+    R: io::Read,
+{
+    // get the expected length of the string
+    let mut length_buffer = [0; 2];
+    reader.read(&mut length_buffer).expect("Reading error");
+    let length = u16::from_be_bytes(length_buffer);
+
+    // read the string
+    let mut handle = reader.take(u64::from(length));
+    let mut buffer = vec![];
+    handle.read_to_end(&mut buffer).expect("Reading error");
+    return String::from_utf8(buffer).unwrap();
+}
+
 impl TypeParser for Utf8EncodedString {
     fn new<R>(mut reader: R) -> Type<String>
     where
         R: io::Read,
     {
-        // get the expected length of the string
-        let mut length_buffer = [0; 2];
-        reader.read(&mut length_buffer).expect("Reading error");
-        let length = u16::from_be_bytes(length_buffer);
-
-        // read the string
-        let mut handle = reader.take(u64::from(length));
-        let mut buffer = vec![];
-        handle.read_to_end(&mut buffer).expect("Reading error");
-
         Type {
-            value: String::from_utf8(buffer).unwrap(),
+            value: parse_string(&mut reader),
         }
     }
 }
@@ -195,9 +201,32 @@ impl TypeParser for BinaryData {
     }
 }
 
-// 1.5.7 UTF-8 String Pair
-// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901013
-//pub struct Utf8StringPair(String, String);
+/**
+ * 1.5.7 UTF-8 String Pair
+ * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901013
+ * A UTF-8 String Pair consists of two UTF-8 Encoded Strings. This data type
+ * is used to hold name-value pairs. The first string serves as the name, and
+ * the second string contains the value.
+ *
+ * Both strings MUST comply with the requirements for UTF-8 Encoded Strings
+ * [MQTT-1.5.7-1]. If a receiver (Client or Server) receives a string pair
+ * which does not meet these requirements it is a Malformed Packet. Refer to
+ * section 4.13 for information about handling errors.
+ */
+pub type Utf8StringPair = Type<(String, String)>;
+
+impl TypeParser for Utf8StringPair {
+    fn new<R>(mut reader: R) -> Type<(String, String)>
+    where
+        R: io::Read,
+    {
+        let str_one = parse_string(&mut reader);
+        let str_two = parse_string(&mut reader);
+        Type {
+            value: (str_one, str_two),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -290,5 +319,19 @@ mod tests {
 
         let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
         assert_eq!(result.value, expected);
+    }
+
+    #[test]
+    fn string_pair() {
+        let data: Vec<u8> = vec![
+            0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111, 111, 32,
+            98, 97, 114, 1, 1, 1, 1,
+        ];
+
+        let reader = io::BufReader::new(&*data);
+        let result = Utf8StringPair::new(reader);
+
+        assert_eq!(result.value.0, "hello world");
+        assert_eq!(result.value.1, "foo bar");
     }
 }
