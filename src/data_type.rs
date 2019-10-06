@@ -167,9 +167,33 @@ impl TypeParser for VariableByteInteger {
     }
 }
 
-// 1.5.6 Binary Data
-// https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901012
-//pub type BinaryData = Vec<u8>;
+/**
+ * 1.5.6 Binary Data
+ * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901012
+ * Binary Data is represented by a Two Byte Integer length which indicates the
+ * number of data bytes, followed by that number of bytes. Thus, the length of
+ * Binary Data is limited to the range of 0 to 65,535 Bytes.
+ */
+pub type BinaryData = Type<Vec<u8>>;
+
+impl TypeParser for BinaryData {
+    fn new<R>(mut reader: R) -> Type<Vec<u8>>
+    where
+        R: io::Read,
+    {
+        // get the expected length of the string
+        let mut length_buffer = [0; 2];
+        reader.read(&mut length_buffer).expect("Reading error");
+        let length = u16::from_be_bytes(length_buffer);
+
+        // read the data
+        let mut handle = reader.take(u64::from(length));
+        let mut buffer = vec![];
+        handle.read_to_end(&mut buffer).expect("Reading error");
+
+        Type { value: buffer }
+    }
+}
 
 // 1.5.7 UTF-8 String Pair
 // https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901013
@@ -253,5 +277,18 @@ mod tests {
         vari = vec![0xFF, 0xFF, 0xFF, 0x7F];
         vari_type = VariableByteInteger::new(&*vari);
         assert_eq!(vari_type.value, 268435455);
+    }
+
+    #[test]
+    fn binary_data() {
+        let data: Vec<u8> = vec![
+            0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
+        ];
+
+        let reader = io::BufReader::new(&*data);
+        let result = BinaryData::new(reader);
+
+        let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
+        assert_eq!(result.value, expected);
     }
 }
