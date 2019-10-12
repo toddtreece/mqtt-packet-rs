@@ -17,6 +17,52 @@ pub enum Type {
     Utf8StringPair(String, String),
 }
 
+impl From<u8> for Type {
+    fn from(value: u8) -> Self {
+        Type::Byte(value)
+    }
+}
+
+impl From<Type> for u16 {
+    fn from(t: Type) -> Self {
+        if let Type::TwoByteInteger(value) = t {
+            return value;
+        } else {
+            return 0;
+        }
+    }
+}
+
+impl From<u16> for Type {
+    fn from(value: u16) -> Self {
+        Type::TwoByteInteger(value)
+    }
+}
+
+impl From<u32> for Type {
+    fn from(value: u32) -> Self {
+        Type::FourByteInteger(value)
+    }
+}
+
+impl From<Vec<u8>> for Type {
+    fn from(value: Vec<u8>) -> Self {
+        Type::BinaryData(value)
+    }
+}
+
+impl From<String> for Type {
+    fn from(value: String) -> Self {
+        Type::Utf8EncodedString(value)
+    }
+}
+
+impl From<(String, String)> for Type {
+    fn from(value: (String, String)) -> Self {
+        Type::Utf8StringPair(value.0, value.1)
+    }
+}
+
 impl Type {
     /**
      * 1.5.1 Bits
