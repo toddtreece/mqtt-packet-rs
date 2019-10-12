@@ -1,2 +1,2 @@
-mod data_type;
-mod property;
+pub mod data_type;
+pub mod property;

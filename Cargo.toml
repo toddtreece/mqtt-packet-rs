@@ -1,5 +1,5 @@
 [package]
-name = "mqtt_rust"
+name = "mqtt_packet"
 version = "0.1.0"
 authors = ["Todd Treece <todd@uniontownlabs.org>"]
 edition = "2018"

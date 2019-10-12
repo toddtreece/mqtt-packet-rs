@@ -13,10 +13,12 @@ use std::io;
  * Reason Code 0x81 (Malformed Packet). There is no significance in the order
  * of Properties with different Identifiers.
  */
-struct Property(HashMap<String, Type>);
+pub struct Property {
+    pub values: HashMap<String, Type>,
+}
 
 impl Property {
-    pub fn parse<R, T>(mut reader: R) -> Self
+    pub fn parse<R>(mut reader: R) -> Self
     where
         R: io::Read,
     {
@@ -186,6 +188,6 @@ impl Property {
             }
         }
 
-        return Self(properties);
+        return Self { values: properties };
     }
 }
