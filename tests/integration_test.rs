@@ -6,12 +6,12 @@ fn byte() {
     let reader: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
     let property = Property::parse(&*reader);
 
-    match property.values.get("payloadFormatIndicator") {
+    match property.values.get("PayloadFormatIndicator") {
         Some(value) => assert_eq!(value, &Type::Byte(255)),
         None => panic!("Not a valid property"),
     }
 
-    match property.values.get("maximumQos") {
+    match property.values.get("MaximumQos") {
         Some(value) => assert_eq!(value, &Type::Byte(2)),
         None => panic!("Not a valid property"),
     }
