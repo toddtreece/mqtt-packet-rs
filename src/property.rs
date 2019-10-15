@@ -1,5 +1,8 @@
-use super::data_type::*;
+use super::data_type::Type;
+use num_derive::{FromPrimitive, ToPrimitive};
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::HashMap;
+use std::fmt::{self, Debug};
 use std::io;
 
 /**
@@ -13,6 +16,44 @@ use std::io;
  * Reason Code 0x81 (Malformed Packet). There is no significance in the order
  * of Properties with different Identifiers.
  */
+#[repr(u8)]
+#[derive(FromPrimitive, ToPrimitive, Debug)]
+pub enum Indentifier {
+    PayloadFormatIndicator = 0x01,
+    MessageExpiryInterval = 0x02,
+    ContentType = 0x03,
+    ResponseTopic = 0x08,
+    CorrelationData = 0x09,
+    SubscriptionIdentifier = 0x0b,
+    SessionExpiryInterval = 0x11,
+    AssignedClientIdentifier = 0x12,
+    ServerKeepAlive = 0x13,
+    AuthenticationMethod = 0x15,
+    AuthenticationData = 0x16,
+    RequestProblemInformation = 0x17,
+    WillDelayInterval = 0x18,
+    RequestResponseInformation = 0x19,
+    ResponseInformation = 0x1a,
+    ServerReference = 0x1c,
+    ReasonString = 0x1f,
+    ReceiveMaximum = 0x21,
+    TopicAliasMaximum = 0x22,
+    TopicAlias = 0x23,
+    MaximumQos = 0x24,
+    RetainAvailable = 0x25,
+    UserProperty = 0x26,
+    MaximumPacketSize = 0x27,
+    WildcardSubscriptionAvailable = 0x28,
+    SubscriptionIdentifierAvailable = 0x29,
+    SharedSubscriptionAvailable = 0x2a,
+}
+
+impl fmt::Display for Indentifier {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Debug::fmt(self, f)
+    }
+}
+
 pub struct Property {
     pub values: HashMap<String, Type>,
 }
@@ -22,170 +63,42 @@ impl Property {
     where
         R: io::Read,
     {
+        use Indentifier::*;
         let length = Type::parse_two_byte_int(&mut reader);
         let mut properties = HashMap::new();
         for _i in 0..length.into() {
-            let mut id = [0; 1];
-            reader.read(&mut id).expect("Reading error");
-            match id[0] {
-                0x01 => {
-                    properties.insert(
-                        "payloadFormatIndicator".to_string(),
-                        Type::parse_byte(&mut reader),
-                    );
+            let mut id_buffer = [0; 1];
+            reader.read(&mut id_buffer).expect("Reading error");
+            let identifier = Indentifier::from_u8(id_buffer[0]).unwrap();
+            let parsed = match identifier {
+                PayloadFormatIndicator
+                | RequestProblemInformation
+                | RequestResponseInformation
+                | MaximumQos
+                | RetainAvailable
+                | WildcardSubscriptionAvailable
+                | SubscriptionIdentifierAvailable
+                | SharedSubscriptionAvailable => Type::parse_byte(&mut reader),
+                ServerKeepAlive | ReceiveMaximum | TopicAliasMaximum | TopicAlias => {
+                    Type::parse_two_byte_int(&mut reader)
                 }
-                0x02 => {
-                    properties.insert(
-                        "messageExpiryInterval".to_string(),
-                        Type::parse_two_byte_int(&mut reader),
-                    );
-                }
-                0x03 => {
-                    properties.insert(
-                        "contentType".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x08 => {
-                    properties.insert(
-                        "responseTopic".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x09 => {
-                    properties.insert(
-                        "correlationData".to_string(),
-                        Type::parse_binary_data(&mut reader),
-                    );
-                }
-                0x0b => {
-                    properties.insert(
-                        "subscriptionIdentifier".to_string(),
-                        Type::parse_variable_byte_int(&mut reader),
-                    );
-                }
-                0x11 => {
-                    properties.insert(
-                        "sessionExpiryInterval".to_string(),
-                        Type::parse_four_byte_int(&mut reader),
-                    );
-                }
-                0x12 => {
-                    properties.insert(
-                        "assignedClientIdentifier".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x13 => {
-                    properties.insert(
-                        "serverKeepAlive".to_string(),
-                        Type::parse_two_byte_int(&mut reader),
-                    );
-                }
-                0x15 => {
-                    properties.insert(
-                        "authenticationMethod".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x16 => {
-                    properties.insert(
-                        "authenticationData".to_string(),
-                        Type::parse_binary_data(&mut reader),
-                    );
-                }
-                0x17 => {
-                    properties.insert(
-                        "requestProblemInformation".to_string(),
-                        Type::parse_byte(&mut reader),
-                    );
-                }
-                0x18 => {
-                    properties.insert(
-                        "willDelayInterval".to_string(),
-                        Type::parse_four_byte_int(&mut reader),
-                    );
-                }
-                0x19 => {
-                    properties.insert(
-                        "requestResponseInformation".to_string(),
-                        Type::parse_byte(&mut reader),
-                    );
-                }
-                0x1a => {
-                    properties.insert(
-                        "responseInformation".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x1c => {
-                    properties.insert(
-                        "serverReference".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x1f => {
-                    properties.insert(
-                        "reasonString".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x21 => {
-                    properties.insert(
-                        "receiveMaximum".to_string(),
-                        Type::parse_two_byte_int(&mut reader),
-                    );
-                }
-                0x22 => {
-                    properties.insert(
-                        "topicAliasMaximum".to_string(),
-                        Type::parse_two_byte_int(&mut reader),
-                    );
-                }
-                0x23 => {
-                    properties.insert(
-                        "topicAlias".to_string(),
-                        Type::parse_utf8_string(&mut reader),
-                    );
-                }
-                0x24 => {
-                    properties.insert("maximumQos".to_string(), Type::parse_byte(&mut reader));
-                }
-                0x25 => {
-                    properties.insert("retainAvailable".to_string(), Type::parse_byte(&mut reader));
-                }
-                0x26 => {
-                    properties.insert(
-                        "userProperty".to_string(),
-                        Type::parse_utf8_string_pair(&mut reader),
-                    );
-                }
-                0x27 => {
-                    properties.insert(
-                        "maximumPacketSize".to_string(),
-                        Type::parse_four_byte_int(&mut reader),
-                    );
-                }
-                0x28 => {
-                    properties.insert(
-                        "wildcardSubscriptionAvailable".to_string(),
-                        Type::parse_byte(&mut reader),
-                    );
-                }
-                0x29 => {
-                    properties.insert(
-                        "subscriptionIdentifierAvailable".to_string(),
-                        Type::parse_byte(&mut reader),
-                    );
-                }
-                0x2a => {
-                    properties.insert(
-                        "sharedSubscriptionAvailable".to_string(),
-                        Type::parse_byte(&mut reader),
-                    );
-                }
-                _ => println!("Invalid property"),
-            }
+                MessageExpiryInterval
+                | SessionExpiryInterval
+                | WillDelayInterval
+                | MaximumPacketSize => Type::parse_four_byte_int(&mut reader),
+                SubscriptionIdentifier => Type::parse_variable_byte_int(&mut reader),
+                UserProperty => Type::parse_utf8_string_pair(&mut reader),
+                CorrelationData => Type::parse_binary_data(&mut reader),
+                ContentType
+                | ResponseTopic
+                | AssignedClientIdentifier
+                | AuthenticationMethod
+                | ResponseInformation
+                | ServerReference
+                | ReasonString => Type::parse_utf8_string(&mut reader),
+                _ => Type::parse_byte(&mut reader),
+            };
+            properties.insert(identifier.to_string(), parsed);
         }
 
         return Self { values: properties };
