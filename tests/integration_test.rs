@@ -37,3 +37,13 @@ fn four_byte() {
         None => panic!("Not a valid property"),
     }
 }
+
+#[test]
+fn variable_byte() {
+    let reader: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+    let property = Property::parse(&*reader);
+    match property.values.get("SubscriptionIdentifier") {
+        Some(value) => assert_eq!(value, &Type::FourByteInteger(268435455)),
+        None => panic!("Not a valid property"),
+    }
+}
