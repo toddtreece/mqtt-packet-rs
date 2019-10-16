@@ -231,6 +231,20 @@ mod tests {
     }
 
     #[test]
+    fn type_into() {
+        let mut reader: Vec<u8> = vec![0x01, 0x02, 0x03];
+        let two = Type::parse_two_byte_int(&*reader);
+        let mut check: u16 = two.into();
+        assert_eq!(258, check);
+
+        // andy
+        reader = vec![0x01, 0x02, 0x03, 0x04, 0x05];
+        let four = Type::parse_four_byte_int(&*reader);
+        check = four.into();
+        assert_eq!(0, check);
+    }
+
+    #[test]
     fn four_byte() {
         let reader: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05];
         let four = Type::parse_four_byte_int(&*reader);
