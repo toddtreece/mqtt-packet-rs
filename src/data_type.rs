@@ -307,6 +307,13 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn variable_byte_panic() {
+        let vari: Vec<u8> = vec![0xFF, 0xFF, 0xFF, 0xFF];
+        let vari_type = Type::parse_variable_byte_int(&*vari);
+    }
+
+    #[test]
     fn binary_data() {
         let data: Vec<u8> = vec![
             0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
