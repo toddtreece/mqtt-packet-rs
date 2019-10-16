@@ -310,7 +310,7 @@ mod tests {
     #[should_panic]
     fn variable_byte_panic() {
         let vari: Vec<u8> = vec![0xFF, 0xFF, 0xFF, 0xFF];
-        let vari_type = Type::parse_variable_byte_int(&*vari);
+        let _vari_type = Type::parse_variable_byte_int(&*vari);
     }
 
     #[test]

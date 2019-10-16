@@ -88,7 +88,7 @@ impl Property {
                 | MaximumPacketSize => Type::parse_four_byte_int(&mut reader),
                 SubscriptionIdentifier => Type::parse_variable_byte_int(&mut reader),
                 UserProperty => Type::parse_utf8_string_pair(&mut reader),
-                CorrelationData => Type::parse_binary_data(&mut reader),
+                CorrelationData | AuthenticationData => Type::parse_binary_data(&mut reader),
                 ContentType
                 | ResponseTopic
                 | AssignedClientIdentifier
@@ -96,7 +96,6 @@ impl Property {
                 | ResponseInformation
                 | ServerReference
                 | ReasonString => Type::parse_utf8_string(&mut reader),
-                _ => Type::parse_byte(&mut reader),
             };
             properties.insert(identifier.to_string(), parsed);
         }
