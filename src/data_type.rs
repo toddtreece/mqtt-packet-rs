@@ -237,7 +237,7 @@ mod tests {
         let mut check: u16 = two.into();
         assert_eq!(258, check);
 
-        // andy
+        // any other type should return 0 for now
         reader = vec![0x01, 0x02, 0x03, 0x04, 0x05];
         let four = Type::parse_four_byte_int(&*reader);
         check = four.into();
