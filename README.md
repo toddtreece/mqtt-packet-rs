@@ -1,4 +1,4 @@
-# MQTT v5.0 Packet [![Build Status](https://travis-ci.org/toddtreece/mqtt_packet.svg?branch=master)](https://travis-ci.org/toddtreece/mqtt_packet)
+# MQTT v5.0 Packet [![Build Status](https://travis-ci.org/toddtreece/mqtt_packet.svg?branch=master)](https://travis-ci.org/toddtreece/mqtt_packet) [![Coverage Status](https://coveralls.io/repos/github/toddtreece/mqtt_packet/badge.svg?branch=master)](https://coveralls.io/github/toddtreece/mqtt_packet?branch=master)
 
 ## About
 A [MQTT v5.0][mqtt] packet generator and parser written in [Rust][rust].
