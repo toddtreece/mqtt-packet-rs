@@ -1,6 +1,6 @@
 use super::data_type::Type;
-use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive, ToPrimitive};
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use std::collections::HashMap;
 use std::fmt::{self, Debug};
 use std::io;
@@ -17,7 +17,7 @@ use std::io;
  * of Properties with different Identifiers.
  */
 #[repr(u8)]
-#[derive(FromPrimitive, ToPrimitive, Debug)]
+#[derive(FromPrimitive, Debug)]
 pub enum Indentifier {
     PayloadFormatIndicator = 0x01,
     MessageExpiryInterval = 0x02,

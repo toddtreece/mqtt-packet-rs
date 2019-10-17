@@ -36,4 +36,4 @@ script:
     cargo bench
 
 after_success:
-  - cargo coveralls --exclude-pattern tests
+  - RUSTFLAGS='-C link-dead-code' cargo coveralls --exclude-pattern tests
