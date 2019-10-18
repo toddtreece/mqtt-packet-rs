@@ -209,12 +209,62 @@ impl Type {
 
         return Self::Utf8StringPair(str_one, str_two);
     }
+
+    fn calculate_length(data: Vec<u8>) -> Vec<u8> {
+        // calculate two byte length
+        let mut length = data.len().to_le_bytes()[0..2].to_vec();
+        length.reverse();
+        return [&length[..], &data[..]].concat();
+    }
+
+    pub fn into_bytes(self) -> Vec<u8> {
+        match self {
+            Self::Byte(value) => value.to_be_bytes().to_vec(),
+            Self::TwoByteInteger(value) => value.to_be_bytes().to_vec(),
+            Self::FourByteInteger(value) => value.to_be_bytes().to_vec(),
+            Self::Utf8EncodedString(value) => Self::calculate_length(value.into_bytes()),
+            Self::BinaryData(value) => Self::calculate_length(value.to_vec()),
+            Self::Utf8StringPair(one, two) => [
+                Self::calculate_length(one.into_bytes()),
+                Self::calculate_length(two.into_bytes()),
+            ]
+            .concat(),
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Type;
     use std::io;
+
+    #[test]
+    fn into_byte() {
+        let value = Type::Byte(255);
+        let expected: Vec<u8> = vec![0xFF];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn into_two_byte() {
+        let value = Type::TwoByteInteger(258);
+        let expected: Vec<u8> = vec![0x01, 0x02];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn into_four_byte() {
+        let value = Type::FourByteInteger(16909060);
+        let expected: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn into_string() {
+        let value = Type::Utf8EncodedString("hello world".to_string());
+        let expected: Vec<u8> = vec![0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100];
+        assert_eq!(value.into_bytes(), expected);
+    }
 
     #[test]
     fn byte() {
