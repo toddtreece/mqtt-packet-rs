@@ -210,13 +210,23 @@ impl Type {
         return Self::Utf8StringPair(str_one, str_two);
     }
 
+    /**
+     * Used by into_bytes() for calculating length for strings, string pairs, and binary data.
+     * The length of arrays is limited to the range of 0 to 65,535 bytes. Because of that we
+     * need to convert usize to a two byte u8 array.
+     */
     fn calculate_length(data: Vec<u8>) -> Vec<u8> {
-        // calculate two byte length
+        if data.len() > 65535 {
+            panic!("The max length of data is 65,535 bytes.");
+        }
         let mut length = data.len().to_le_bytes()[0..2].to_vec();
         length.reverse();
         return [&length[..], &data[..]].concat();
     }
 
+    /**
+     * Convert Type variants into u8 vectors.
+     */
     pub fn into_bytes(self) -> Vec<u8> {
         match self {
             Self::Byte(value) => value.to_be_bytes().to_vec(),
@@ -237,34 +247,6 @@ impl Type {
 mod tests {
     use super::Type;
     use std::io;
-
-    #[test]
-    fn into_byte() {
-        let value = Type::Byte(255);
-        let expected: Vec<u8> = vec![0xFF];
-        assert_eq!(value.into_bytes(), expected);
-    }
-
-    #[test]
-    fn into_two_byte() {
-        let value = Type::TwoByteInteger(258);
-        let expected: Vec<u8> = vec![0x01, 0x02];
-        assert_eq!(value.into_bytes(), expected);
-    }
-
-    #[test]
-    fn into_four_byte() {
-        let value = Type::FourByteInteger(16909060);
-        let expected: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04];
-        assert_eq!(value.into_bytes(), expected);
-    }
-
-    #[test]
-    fn into_string() {
-        let value = Type::Utf8EncodedString("hello world".to_string());
-        let expected: Vec<u8> = vec![0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100];
-        assert_eq!(value.into_bytes(), expected);
-    }
 
     #[test]
     fn byte() {
@@ -390,5 +372,54 @@ mod tests {
             result,
             Type::Utf8StringPair(String::from("hello world"), String::from("foo bar"))
         );
+    }
+
+    #[test]
+    fn byte_into_bytes() {
+        let value = Type::Byte(255);
+        let expected: Vec<u8> = vec![0xFF];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn two_byte_int_into_bytes() {
+        let value = Type::TwoByteInteger(258);
+        let expected: Vec<u8> = vec![0x01, 0x02];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn four_byte_into_bytes() {
+        let value = Type::FourByteInteger(16909060);
+        let expected: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn utf8_string_into_bytes() {
+        let value = Type::Utf8EncodedString("hello world".to_string());
+        let expected: Vec<u8> = vec![0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn utf8_string_pair_into_bytes() {
+        let value = Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string());
+        let expected: Vec<u8> = vec![
+            0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111, 111, 32,
+            98, 97, 114,
+        ];
+        assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn binary_data_into_bytes() {
+        let data: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
+        let value = Type::BinaryData(data);
+
+        let expected: Vec<u8> = vec![
+            0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+        ];
+        assert_eq!(value.into_bytes(), expected);
     }
 }
