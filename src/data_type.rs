@@ -216,6 +216,7 @@ impl Type {
      * need to convert usize to a two byte u8 array.
      */
     fn calculate_length(data: Vec<u8>) -> Vec<u8> {
+        println!("CALC LENGTH {}", data.len());
         if data.len() > 65535 {
             panic!("The max length of data is 65,535 bytes.");
         }
@@ -421,5 +422,13 @@ mod tests {
             0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
         ];
         assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn into_bytes_max_length() {
+        let data = [0u8; 65536];
+        let value = Type::BinaryData(data.to_vec());
+        value.into_bytes();
     }
 }
