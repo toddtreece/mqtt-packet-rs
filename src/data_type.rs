@@ -234,11 +234,13 @@ impl Type {
             Self::FourByteInteger(value) => value.to_be_bytes().to_vec(),
             Self::Utf8EncodedString(value) => Self::calculate_length(value.into_bytes()),
             Self::BinaryData(value) => Self::calculate_length(value.to_vec()),
-            Self::Utf8StringPair(one, two) => [
-                Self::calculate_length(one.into_bytes()),
-                Self::calculate_length(two.into_bytes()),
-            ]
-            .concat(),
+            Self::Utf8StringPair(one, two) => {
+                let pair = [
+                    Self::calculate_length(one.into_bytes()),
+                    Self::calculate_length(two.into_bytes()),
+                ];
+                return pair.concat();
+            }
         }
     }
 }
