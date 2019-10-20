@@ -1,5 +1,5 @@
 use mqtt_packet::data_type::Type;
-use mqtt_packet::property::Property;
+use mqtt_packet::property::{Indentifier::*, Property};
 use std::io;
 
 #[test]
@@ -7,12 +7,12 @@ fn byte() {
     let reader: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
     let property = Property::parse(&*reader);
 
-    match property.values.get("PayloadFormatIndicator") {
+    match property.values.get(&PayloadFormatIndicator) {
         Some(value) => assert_eq!(value, &Type::Byte(255)),
         None => panic!("Not a valid property"),
     }
 
-    match property.values.get("MaximumQos") {
+    match property.values.get(&MaximumQos) {
         Some(value) => assert_eq!(value, &Type::Byte(2)),
         None => panic!("Not a valid property"),
     }
@@ -22,7 +22,7 @@ fn byte() {
 fn two_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
     let property = Property::parse(&*reader);
-    match property.values.get("ServerKeepAlive") {
+    match property.values.get(&ServerKeepAlive) {
         Some(value) => assert_eq!(value, &Type::TwoByteInteger(515)),
         None => panic!("Not a valid property"),
     }
@@ -32,7 +32,7 @@ fn two_byte() {
 fn four_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
     let property = Property::parse(&*reader);
-    match property.values.get("MessageExpiryInterval") {
+    match property.values.get(&MessageExpiryInterval) {
         Some(value) => assert_eq!(value, &Type::FourByteInteger(33752069)),
         None => panic!("Not a valid property"),
     }
@@ -42,7 +42,7 @@ fn four_byte() {
 fn variable_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
     let property = Property::parse(&*reader);
-    match property.values.get("SubscriptionIdentifier") {
+    match property.values.get(&SubscriptionIdentifier) {
         Some(value) => assert_eq!(value, &Type::FourByteInteger(268435455)),
         None => panic!("Not a valid property"),
     }
@@ -57,7 +57,7 @@ fn binary_data() {
     let property = Property::parse(reader);
 
     let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
-    match property.values.get("CorrelationData") {
+    match property.values.get(&CorrelationData) {
         Some(value) => assert_eq!(value, &Type::BinaryData(expected)),
         None => panic!("Not a valid property"),
     }
@@ -71,7 +71,7 @@ fn utf8_string() {
     ];
     let reader = io::BufReader::new(&*data);
     let property = Property::parse(reader);
-    match property.values.get("ServerReference") {
+    match property.values.get(&ServerReference) {
         Some(value) => assert_eq!(value, &Type::Utf8EncodedString("hello world".to_string())),
         None => panic!("Not a valid property"),
     }
@@ -85,7 +85,7 @@ fn utf8_string_pair() {
     ];
     let reader = io::BufReader::new(&*data);
     let property = Property::parse(reader);
-    match property.values.get("UserProperty") {
+    match property.values.get(&UserProperty) {
         Some(value) => assert_eq!(
             value,
             &Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string())

@@ -17,7 +17,7 @@ use std::io;
  * of Properties with different Identifiers.
  */
 #[repr(u8)]
-#[derive(FromPrimitive, Debug)]
+#[derive(Debug, PartialEq, Eq, Hash, FromPrimitive)]
 pub enum Indentifier {
     PayloadFormatIndicator = 0x01,
     MessageExpiryInterval = 0x02,
@@ -55,7 +55,7 @@ impl fmt::Display for Indentifier {
 }
 
 pub struct Property {
-    pub values: HashMap<String, Type>,
+    pub values: HashMap<Indentifier, Type>,
 }
 
 impl Property {
@@ -97,7 +97,7 @@ impl Property {
                 | ServerReference
                 | ReasonString => Type::parse_utf8_string(&mut reader),
             };
-            properties.insert(identifier.to_string(), parsed);
+            properties.insert(identifier, parsed);
         }
 
         return Self { values: properties };
