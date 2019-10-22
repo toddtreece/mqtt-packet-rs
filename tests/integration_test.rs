@@ -110,3 +110,31 @@ fn generate_byte() {
     let expected: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
     assert_eq!(property.generate(), expected);
 }
+
+#[test]
+fn generate_two_byte() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+
+    property
+        .values
+        .insert(ServerKeepAlive, Type::TwoByteInteger(515));
+
+    let expected: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
+    assert_eq!(property.generate(), expected);
+}
+
+#[test]
+fn generate_four_byte() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+
+    property
+        .values
+        .insert(MessageExpiryInterval, Type::FourByteInteger(33752069));
+
+    let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
+    assert_eq!(property.generate(), expected);
+}
