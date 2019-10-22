@@ -1,5 +1,6 @@
 use mqtt_packet::data_type::Type;
 use mqtt_packet::property::{Indentifier::*, Property};
+use std::collections::BTreeMap;
 use std::io;
 
 #[test]
@@ -92,4 +93,20 @@ fn parse_utf8_string_pair() {
         ),
         None => panic!("Not a valid property"),
     }
+}
+
+#[test]
+fn generate_byte() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+
+    property
+        .values
+        .insert(PayloadFormatIndicator, Type::Byte(255));
+
+    property.values.insert(MaximumQos, Type::Byte(2));
+
+    let expected: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
+    assert_eq!(property.generate(), expected);
 }
