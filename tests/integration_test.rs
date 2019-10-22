@@ -138,3 +138,15 @@ fn generate_four_byte() {
     let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
     assert_eq!(property.generate(), expected);
 }
+
+#[test]
+fn generate_variable_byte() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+
+    property.values.insert(SubscriptionIdentifier, Type::FourByteInteger(268435455)),
+
+    let expected: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+    assert_eq!(property.generate(), expected);
+}
