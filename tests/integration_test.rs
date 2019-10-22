@@ -3,7 +3,7 @@ use mqtt_packet::property::{Indentifier::*, Property};
 use std::io;
 
 #[test]
-fn byte() {
+fn parse_byte() {
     let reader: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
     let property = Property::parse(&*reader);
 
@@ -19,7 +19,7 @@ fn byte() {
 }
 
 #[test]
-fn two_byte() {
+fn parse_two_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
     let property = Property::parse(&*reader);
     match property.values.get(&ServerKeepAlive) {
@@ -29,7 +29,7 @@ fn two_byte() {
 }
 
 #[test]
-fn four_byte() {
+fn parse_four_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
     let property = Property::parse(&*reader);
     match property.values.get(&MessageExpiryInterval) {
@@ -39,7 +39,7 @@ fn four_byte() {
 }
 
 #[test]
-fn variable_byte() {
+fn parse_variable_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
     let property = Property::parse(&*reader);
     match property.values.get(&SubscriptionIdentifier) {
@@ -49,7 +49,7 @@ fn variable_byte() {
 }
 
 #[test]
-fn binary_data() {
+fn parse_binary_data() {
     let data: Vec<u8> = vec![
         0x00, 0x01, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
     ];
@@ -64,7 +64,7 @@ fn binary_data() {
 }
 
 #[test]
-fn utf8_string() {
+fn parse_utf8_string() {
     let data: Vec<u8> = vec![
         0x00, 0x01, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 100, 100,
         100,
@@ -78,7 +78,7 @@ fn utf8_string() {
 }
 
 #[test]
-fn utf8_string_pair() {
+fn parse_utf8_string_pair() {
     let data: Vec<u8> = vec![
         0x00, 0x01, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102,
         111, 111, 32, 98, 97, 114, 1, 1, 1, 1,
