@@ -227,17 +227,17 @@ impl Type {
     /**
      * Convert Type variants into u8 vectors.
      */
-    pub fn into_bytes(self) -> Vec<u8> {
+    pub fn into_bytes(&self) -> Vec<u8> {
         match self {
             Self::Byte(value) => value.to_be_bytes().to_vec(),
             Self::TwoByteInteger(value) => value.to_be_bytes().to_vec(),
             Self::FourByteInteger(value) => value.to_be_bytes().to_vec(),
-            Self::Utf8EncodedString(value) => Self::calculate_length(value.into_bytes()),
+            Self::Utf8EncodedString(value) => Self::calculate_length(value.as_bytes().to_vec()),
             Self::BinaryData(value) => Self::calculate_length(value.to_vec()),
             Self::Utf8StringPair(one, two) => {
                 let pair = [
-                    Self::calculate_length(one.into_bytes()),
-                    Self::calculate_length(two.into_bytes()),
+                    Self::calculate_length(one.as_bytes().to_vec()),
+                    Self::calculate_length(two.as_bytes().to_vec()),
                 ];
                 return pair.concat();
             }
