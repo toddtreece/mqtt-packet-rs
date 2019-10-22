@@ -1,7 +1,7 @@
 use super::data_type::Type;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::fmt::{self, Debug};
 use std::io;
 
@@ -17,7 +17,7 @@ use std::io;
  * of Properties with different Identifiers.
  */
 #[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, FromPrimitive, ToPrimitive)]
+#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum Indentifier {
     PayloadFormatIndicator = 0x01,
     MessageExpiryInterval = 0x02,
@@ -55,7 +55,7 @@ impl fmt::Display for Indentifier {
 }
 
 pub struct Property {
-    pub values: HashMap<Indentifier, Type>,
+    pub values: BTreeMap<Indentifier, Type>,
 }
 
 impl Property {
@@ -65,7 +65,7 @@ impl Property {
     {
         use Indentifier::*;
         let length = Type::parse_two_byte_int(&mut reader);
-        let mut properties = HashMap::new();
+        let mut properties = BTreeMap::new();
         for _i in 0..length.into() {
             let mut id_buffer = [0; 1];
             reader.read(&mut id_buffer).expect("Reading error");
@@ -107,6 +107,7 @@ impl Property {
         let mut length = self.values.len().to_le_bytes()[0..2].to_vec();
         length.reverse();
         let mut bytes = vec![];
+        bytes.push(length);
         for (key, value) in self.values.iter() {
             let id: u8 = key.to_u8().unwrap();
             bytes.push(vec![id]);
