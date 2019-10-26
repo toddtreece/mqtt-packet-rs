@@ -17,7 +17,7 @@ use std::io;
  */
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
-pub enum Indentifier {
+pub enum Identifier {
     PayloadFormatIndicator = 0x01,
     MessageExpiryInterval = 0x02,
     ContentType = 0x03,
@@ -48,7 +48,7 @@ pub enum Indentifier {
 }
 
 pub struct Property {
-    pub values: BTreeMap<Indentifier, Type>,
+    pub values: BTreeMap<Identifier, Type>,
 }
 
 impl Property {
@@ -56,13 +56,13 @@ impl Property {
     where
         R: io::Read,
     {
-        use Indentifier::*;
+        use Identifier::*;
         let length = Type::parse_two_byte_int(&mut reader);
         let mut properties = BTreeMap::new();
         for _i in 0..length.into() {
             let mut id_buffer = [0; 1];
             reader.read(&mut id_buffer).expect("Reading error");
-            let identifier = Indentifier::from_u8(id_buffer[0]).unwrap();
+            let identifier = Identifier::from_u8(id_buffer[0]).unwrap();
             let parsed = match identifier {
                 PayloadFormatIndicator
                 | RequestProblemInformation

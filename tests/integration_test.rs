@@ -1,5 +1,5 @@
 use mqtt_packet::data_type::{Type, VariableByte};
-use mqtt_packet::property::{Indentifier::*, Property};
+use mqtt_packet::property::{Identifier::*, Property};
 use std::collections::BTreeMap;
 use std::io;
 
@@ -95,6 +95,66 @@ fn parse_utf8_string_pair() {
             &Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string())
         ),
         None => panic!("Not a valid property"),
+    }
+}
+
+#[test]
+fn parse_all() {
+    let length: Vec<u8> = vec![0x00, 0x07];
+    let byte: Vec<u8> = vec![0x01, 0xFF];
+    let two_byte: Vec<u8> = vec![0x13, 0x02, 0x03];
+    let four_byte: Vec<u8> = vec![0x02, 0x02, 0x03, 0x04, 0x05];
+    let variable_byte: Vec<u8> = vec![0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+    let binary_data: Vec<u8> = vec![
+        0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    ];
+    let string: Vec<u8> = vec![
+        0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
+    ];
+    let string_pair: Vec<u8> = vec![
+        0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111, 111, 32,
+        98, 97, 114,
+    ];
+
+    let data = [
+        &length[..],
+        &byte[..],
+        &two_byte[..],
+        &four_byte[..],
+        &variable_byte[..],
+        &binary_data[..],
+        &string[..],
+        &string_pair[..],
+    ]
+    .concat();
+
+    let reader = io::BufReader::new(&*data);
+    let property = Property::parse(reader);
+
+    for (identifier, value) in &property.values {
+        match identifier {
+            PayloadFormatIndicator => assert_eq!(value, &Type::Byte(255)),
+            ServerKeepAlive => assert_eq!(value, &Type::TwoByteInteger(515)),
+            MessageExpiryInterval => assert_eq!(value, &Type::FourByteInteger(33752069)),
+            SubscriptionIdentifier => assert_eq!(
+                value,
+                &Type::VariableByteInteger(VariableByte::Four(268435455))
+            ),
+            CorrelationData => assert_eq!(
+                value,
+                &Type::BinaryData(vec![
+                    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09
+                ])
+            ),
+            ServerReference => {
+                assert_eq!(value, &Type::Utf8EncodedString("hello world".to_string()))
+            }
+            UserProperty => assert_eq!(
+                value,
+                &Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string())
+            ),
+            _ => panic!("Not a valid property"),
+        }
     }
 }
 
