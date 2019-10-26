@@ -1,4 +1,4 @@
-use super::data_type::DataType;
+use crate::data_type::DataType;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
