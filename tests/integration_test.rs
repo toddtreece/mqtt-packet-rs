@@ -98,36 +98,46 @@ fn parse_utf8_string_pair() {
     }
 }
 
-#[test]
-fn parse_all() {
+fn all_data() -> Vec<u8> {
     let length: Vec<u8> = vec![0x00, 0x07];
+
     let byte: Vec<u8> = vec![0x01, 0xFF];
     let two_byte: Vec<u8> = vec![0x13, 0x02, 0x03];
     let four_byte: Vec<u8> = vec![0x02, 0x02, 0x03, 0x04, 0x05];
     let variable_byte: Vec<u8> = vec![0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+
     let binary_data: Vec<u8> = vec![
         0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
     ];
+
     let string: Vec<u8> = vec![
         0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
     ];
+
     let string_pair: Vec<u8> = vec![
         0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111, 111, 32,
         98, 97, 114,
     ];
 
-    let data = [
+    // these are sorted by the identifier keys used in
+    // parse_all and generate_all. PartialOrd sorts enum
+    // variants in the order they are declared.
+    return [
         &length[..],
         &byte[..],
-        &two_byte[..],
         &four_byte[..],
-        &variable_byte[..],
         &binary_data[..],
+        &variable_byte[..],
+        &two_byte[..],
         &string[..],
         &string_pair[..],
     ]
     .concat();
+}
 
+#[test]
+fn parse_all() {
+    let data = all_data();
     let reader = io::BufReader::new(&*data);
     let property = Property::parse(reader);
 
@@ -266,5 +276,49 @@ fn generate_utf8_string_pair() {
         0x00, 0x01, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102,
         111, 111, 32, 98, 97, 114,
     ];
+    assert_eq!(property.generate(), expected);
+}
+
+#[test]
+fn generate_all() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+
+    property
+        .values
+        .insert(PayloadFormatIndicator, Type::Byte(255));
+
+    property
+        .values
+        .insert(ServerKeepAlive, Type::TwoByteInteger(515));
+
+    property
+        .values
+        .insert(MessageExpiryInterval, Type::FourByteInteger(33752069));
+
+    property.values.insert(
+        SubscriptionIdentifier,
+        Type::VariableByteInteger(VariableByte::Four(268435455)),
+    );
+
+    property.values.insert(
+        CorrelationData,
+        Type::BinaryData(vec![
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+        ]),
+    );
+
+    property.values.insert(
+        ServerReference,
+        Type::Utf8EncodedString("hello world".to_string()),
+    );
+
+    property.values.insert(
+        UserProperty,
+        Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string()),
+    );
+
+    let expected = all_data();
     assert_eq!(property.generate(), expected);
 }

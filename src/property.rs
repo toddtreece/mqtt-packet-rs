@@ -52,6 +52,9 @@ pub struct Property {
 }
 
 impl Property {
+    /**
+     * Parse property values from a reader into Type variants.
+     */
     pub fn parse<R>(mut reader: R) -> Self
     where
         R: io::Read,
@@ -96,11 +99,21 @@ impl Property {
         return Self { values: properties };
     }
 
+    /**
+     * Convert Property values into a byte array
+     */
     pub fn generate(&self) -> Vec<u8> {
+        // we need to fit the usize into a u16. grab the first two
+        // bytes in little endian order, and reverse them to big endian
+        // to match the MQTT v5 spec.
         let mut length = self.values.len().to_le_bytes()[0..2].to_vec();
         length.reverse();
+
+        // create a vector to hold the generated data
         let mut bytes = vec![];
         bytes.push(length);
+
+        // PartialOrd sorts enum variants in the order they are declared.
         for (key, value) in self.values.iter() {
             let id: u8 = key.to_u8().unwrap();
             bytes.push(vec![id]);
