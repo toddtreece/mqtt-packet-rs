@@ -62,10 +62,17 @@ impl Property {
         use Identifier::*;
         let length = Type::parse_two_byte_int(&mut reader);
         let mut properties = BTreeMap::new();
+
         for _i in 0..length.into() {
             let mut id_buffer = [0; 1];
-            reader.read(&mut id_buffer).expect("Reading error");
-            let identifier = Identifier::from_u8(id_buffer[0]).unwrap();
+
+            reader
+                .read(&mut id_buffer)
+                .expect("Unable to read property data.");
+
+            let identifier =
+                Identifier::from_u8(id_buffer[0]).expect("Unable to find matching identifier");
+
             let parsed = match identifier {
                 PayloadFormatIndicator
                 | RequestProblemInformation
@@ -119,6 +126,7 @@ impl Property {
             bytes.push(vec![id]);
             bytes.push(value.into_bytes());
         }
+
         return bytes.concat();
     }
 }

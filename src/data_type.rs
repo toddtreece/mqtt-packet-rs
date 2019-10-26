@@ -44,7 +44,7 @@ impl Type {
         R: io::Read,
     {
         let mut buffer = [0; 1];
-        reader.read(&mut buffer).expect("Reading error");
+        reader.read(&mut buffer).expect("Unable to read byte");
         return Self::Byte(u8::from_be_bytes(buffer));
     }
 
@@ -61,7 +61,11 @@ impl Type {
         R: io::Read,
     {
         let mut buffer = [0; 2];
-        reader.read(&mut buffer).expect("Reading error");
+
+        reader
+            .read(&mut buffer)
+            .expect("Unable to read two byte integer");
+
         return Self::TwoByteInteger(u16::from_be_bytes(buffer));
     }
 
@@ -80,7 +84,11 @@ impl Type {
         R: io::Read,
     {
         let mut buffer = [0; 4];
-        reader.read(&mut buffer).expect("Reading error");
+
+        reader
+            .read(&mut buffer)
+            .expect("Unable to read four byte integer");
+
         return Self::FourByteInteger(u32::from_be_bytes(buffer));
     }
 
@@ -106,13 +114,21 @@ impl Type {
     {
         // get the expected length of the string
         let mut length_buffer = [0; 2];
-        reader.read(&mut length_buffer).expect("Reading error");
+
+        reader
+            .read(&mut length_buffer)
+            .expect("Unable to read string length");
+
         let length = u16::from_be_bytes(length_buffer);
 
         // read the string
         let mut handle = reader.take(u64::from(length));
         let mut buffer = vec![];
-        handle.read_to_end(&mut buffer).expect("Reading error");
+
+        handle
+            .read_to_end(&mut buffer)
+            .expect("Unable to read string");
+
         return String::from_utf8(buffer).unwrap();
     }
 
@@ -140,13 +156,16 @@ impl Type {
     where
         R: io::Read,
     {
-        let mut more: bool = true;
         let mut multiplier: i32 = 1;
         let mut value: i32 = 0;
 
-        while more {
+        loop {
             let mut b = [0; 1];
-            reader.read(&mut b).expect("Reading error");
+
+            reader
+                .read(&mut b)
+                .expect("Unable to read variable byte int");
+
             value = value + i32::from(b[0] & 127) * multiplier;
 
             if multiplier > (128 * 128 * 128) {
@@ -156,7 +175,7 @@ impl Type {
             multiplier = multiplier * 128;
 
             if (b[0] & 128) == 0 {
-                more = false;
+                break;
             }
         }
 
@@ -187,13 +206,20 @@ impl Type {
     {
         // get the expected length of the string
         let mut length_buffer = [0; 2];
-        reader.read(&mut length_buffer).expect("Reading error");
+
+        reader
+            .read(&mut length_buffer)
+            .expect("Unable to read binary data length");
+
         let length = u16::from_be_bytes(length_buffer);
 
         // read the data
         let mut handle = reader.take(u64::from(length));
         let mut buffer = vec![];
-        handle.read_to_end(&mut buffer).expect("Reading error");
+
+        handle
+            .read_to_end(&mut buffer)
+            .expect("Unable to read binary data");
 
         return Self::BinaryData(buffer);
     }
@@ -229,11 +255,29 @@ impl Type {
         if data.len() > 65535 {
             panic!("The max length of data is 65,535 bytes.");
         }
+
         let mut length = data.len().to_le_bytes()[0..2].to_vec();
         length.reverse();
         return [&length[..], &data[..]].concat();
     }
 
+    /**
+     * Used by into_bytes() to format variable byte ints into the format defined in the
+     * MQTT v5 spec. The algorithm for encoding a non-negative integer (X) into the
+     * Variable Byte Integer encoding scheme is as follows:
+     *
+     * do
+     *    encodedByte = X MOD 128
+     *    X = X DIV 128
+     *    // if there are more data to encode, set the top bit of this byte
+     *    if (X > 0)
+     *       encodedByte = encodedByte OR 128
+     *    endif
+     *    'output' encodedByte
+     * while (X > 0)
+     *
+     * Where MOD is the modulo operator (% in C), DIV is integer division (/ in C), and OR is bit-wise or (| in C).
+     */
     fn encode_variable_byte(data: &VariableByte) -> Vec<u8> {
         let mut bytes = vec![];
         let mut number: u32 = match data {
