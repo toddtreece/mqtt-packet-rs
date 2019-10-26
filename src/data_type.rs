@@ -256,8 +256,11 @@ impl Type {
             panic!("The max length of data is 65,535 bytes.");
         }
 
-        let mut length = data.len().to_le_bytes()[0..2].to_vec();
-        length.reverse();
+        let length = u16::try_from(data.len() & 0xFF)
+            .unwrap()
+            .to_be_bytes()
+            .to_vec();
+
         return [&length[..], &data[..]].concat();
     }
 

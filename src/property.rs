@@ -2,6 +2,7 @@ use super::data_type::Type;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
+use std::convert::TryFrom;
 use std::io;
 
 /**
@@ -110,11 +111,11 @@ impl Property {
      * Convert Property values into a byte array
      */
     pub fn generate(&self) -> Vec<u8> {
-        // we need to fit the usize into a u16. grab the first two
-        // bytes in little endian order, and reverse them to big endian
-        // to match the MQTT v5 spec.
-        let mut length = self.values.len().to_le_bytes()[0..2].to_vec();
-        length.reverse();
+        // we need to fit the usize into a u16, so we can grab the first two bytes
+        let length = u16::try_from(self.values.len() & 0xFF)
+            .unwrap()
+            .to_be_bytes()
+            .to_vec();
 
         // create a vector to hold the generated data
         let mut bytes = vec![];
