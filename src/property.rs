@@ -116,3 +116,16 @@ impl Property {
         return bytes.concat();
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::Indentifier;
+
+    #[test]
+    fn display() {
+        assert_eq!(
+            Indentifier::AssignedClientIdentifier.to_string(),
+            "AssignedClientIdentifier".to_string()
+        );
+    }
+}
