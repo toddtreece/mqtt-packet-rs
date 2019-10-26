@@ -36,6 +36,6 @@ script:
     cargo bench
 
 after_success: |
-  RUSTFLAGS='-C link-dead-code' cargo coveralls --exclude-pattern tests &&
+  RUSTFLAGS='-C link-dead-code' cargo coverage --exclude-pattern tests &&
   bash <(curl -s https://codecov.io/bash) &&
   echo "Uploaded code coverage"
