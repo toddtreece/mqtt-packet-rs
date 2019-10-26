@@ -112,7 +112,7 @@ impl Property {
      */
     pub fn generate(&self) -> Vec<u8> {
         // we need to fit the usize into a u16, so we can grab the first two bytes
-        let length = u16::try_from(self.values.len() & 0xFF)
+        let length = u16::try_from(self.values.len() & 0xFFFF)
             .unwrap()
             .to_be_bytes()
             .to_vec();

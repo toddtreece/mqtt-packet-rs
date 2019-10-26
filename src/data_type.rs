@@ -256,7 +256,7 @@ impl DataType {
             panic!("The max length of data is 65,535 bytes.");
         }
 
-        let length = u16::try_from(data.len() & 0xFF)
+        let length = u16::try_from(data.len() & 0xFFFF)
             .unwrap()
             .to_be_bytes()
             .to_vec();
