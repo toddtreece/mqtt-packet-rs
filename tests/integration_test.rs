@@ -1,4 +1,4 @@
-use mqtt_packet::data_type::{Type, VariableByte};
+use mqtt_packet::data_type::{DataType, VariableByte};
 use mqtt_packet::property::{Identifier::*, Property};
 use std::collections::BTreeMap;
 use std::io;
@@ -9,12 +9,12 @@ fn parse_byte() {
     let property = Property::parse(&*reader);
 
     match property.values.get(&PayloadFormatIndicator) {
-        Some(value) => assert_eq!(value, &Type::Byte(255)),
+        Some(value) => assert_eq!(value, &DataType::Byte(255)),
         None => panic!("Not a valid property"),
     }
 
     match property.values.get(&MaximumQos) {
-        Some(value) => assert_eq!(value, &Type::Byte(2)),
+        Some(value) => assert_eq!(value, &DataType::Byte(2)),
         None => panic!("Not a valid property"),
     }
 }
@@ -24,7 +24,7 @@ fn parse_two_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
     let property = Property::parse(&*reader);
     match property.values.get(&ServerKeepAlive) {
-        Some(value) => assert_eq!(value, &Type::TwoByteInteger(515)),
+        Some(value) => assert_eq!(value, &DataType::TwoByteInteger(515)),
         None => panic!("Not a valid property"),
     }
 }
@@ -34,7 +34,7 @@ fn parse_four_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
     let property = Property::parse(&*reader);
     match property.values.get(&MessageExpiryInterval) {
-        Some(value) => assert_eq!(value, &Type::FourByteInteger(33752069)),
+        Some(value) => assert_eq!(value, &DataType::FourByteInteger(33752069)),
         None => panic!("Not a valid property"),
     }
 }
@@ -46,7 +46,7 @@ fn parse_variable_byte() {
     match property.values.get(&SubscriptionIdentifier) {
         Some(value) => assert_eq!(
             value,
-            &Type::VariableByteInteger(VariableByte::Four(268435455))
+            &DataType::VariableByteInteger(VariableByte::Four(268435455))
         ),
         None => panic!("Not a valid property"),
     }
@@ -62,7 +62,7 @@ fn parse_binary_data() {
 
     let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
     match property.values.get(&CorrelationData) {
-        Some(value) => assert_eq!(value, &Type::BinaryData(expected)),
+        Some(value) => assert_eq!(value, &DataType::BinaryData(expected)),
         None => panic!("Not a valid property"),
     }
 }
@@ -76,7 +76,10 @@ fn parse_utf8_string() {
     let reader = io::BufReader::new(&*data);
     let property = Property::parse(reader);
     match property.values.get(&ServerReference) {
-        Some(value) => assert_eq!(value, &Type::Utf8EncodedString("hello world".to_string())),
+        Some(value) => assert_eq!(
+            value,
+            &DataType::Utf8EncodedString("hello world".to_string())
+        ),
         None => panic!("Not a valid property"),
     }
 }
@@ -92,7 +95,7 @@ fn parse_utf8_string_pair() {
     match property.values.get(&UserProperty) {
         Some(value) => assert_eq!(
             value,
-            &Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string())
+            &DataType::Utf8StringPair("hello world".to_string(), "foo bar".to_string())
         ),
         None => panic!("Not a valid property"),
     }
@@ -143,25 +146,26 @@ fn parse_all() {
 
     for (identifier, value) in &property.values {
         match identifier {
-            PayloadFormatIndicator => assert_eq!(value, &Type::Byte(255)),
-            ServerKeepAlive => assert_eq!(value, &Type::TwoByteInteger(515)),
-            MessageExpiryInterval => assert_eq!(value, &Type::FourByteInteger(33752069)),
+            PayloadFormatIndicator => assert_eq!(value, &DataType::Byte(255)),
+            ServerKeepAlive => assert_eq!(value, &DataType::TwoByteInteger(515)),
+            MessageExpiryInterval => assert_eq!(value, &DataType::FourByteInteger(33752069)),
             SubscriptionIdentifier => assert_eq!(
                 value,
-                &Type::VariableByteInteger(VariableByte::Four(268435455))
+                &DataType::VariableByteInteger(VariableByte::Four(268435455))
             ),
             CorrelationData => assert_eq!(
                 value,
-                &Type::BinaryData(vec![
+                &DataType::BinaryData(vec![
                     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09
                 ])
             ),
-            ServerReference => {
-                assert_eq!(value, &Type::Utf8EncodedString("hello world".to_string()))
-            }
+            ServerReference => assert_eq!(
+                value,
+                &DataType::Utf8EncodedString("hello world".to_string())
+            ),
             UserProperty => assert_eq!(
                 value,
-                &Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string())
+                &DataType::Utf8StringPair("hello world".to_string(), "foo bar".to_string())
             ),
             _ => panic!("Not a valid property"),
         }
@@ -176,9 +180,9 @@ fn generate_byte() {
 
     property
         .values
-        .insert(PayloadFormatIndicator, Type::Byte(255));
+        .insert(PayloadFormatIndicator, DataType::Byte(255));
 
-    property.values.insert(MaximumQos, Type::Byte(2));
+    property.values.insert(MaximumQos, DataType::Byte(2));
 
     let expected: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
     assert_eq!(property.generate(), expected);
@@ -192,7 +196,7 @@ fn generate_two_byte() {
 
     property
         .values
-        .insert(ServerKeepAlive, Type::TwoByteInteger(515));
+        .insert(ServerKeepAlive, DataType::TwoByteInteger(515));
 
     let expected: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
     assert_eq!(property.generate(), expected);
@@ -206,7 +210,7 @@ fn generate_four_byte() {
 
     property
         .values
-        .insert(MessageExpiryInterval, Type::FourByteInteger(33752069));
+        .insert(MessageExpiryInterval, DataType::FourByteInteger(33752069));
 
     let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
     assert_eq!(property.generate(), expected);
@@ -220,7 +224,7 @@ fn generate_variable_byte() {
 
     property.values.insert(
         SubscriptionIdentifier,
-        Type::VariableByteInteger(VariableByte::Four(268435455)),
+        DataType::VariableByteInteger(VariableByte::Four(268435455)),
     );
 
     let expected: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
@@ -236,7 +240,7 @@ fn generate_binary_data() {
     let data: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
     property
         .values
-        .insert(CorrelationData, Type::BinaryData(data));
+        .insert(CorrelationData, DataType::BinaryData(data));
 
     let expected: Vec<u8> = vec![
         0x00, 0x01, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
@@ -252,7 +256,7 @@ fn generate_utf8_string() {
 
     property.values.insert(
         ServerReference,
-        Type::Utf8EncodedString("hello world".to_string()),
+        DataType::Utf8EncodedString("hello world".to_string()),
     );
 
     let expected: Vec<u8> = vec![
@@ -269,7 +273,7 @@ fn generate_utf8_string_pair() {
     };
     property.values.insert(
         UserProperty,
-        Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string()),
+        DataType::Utf8StringPair("hello world".to_string(), "foo bar".to_string()),
     );
 
     let expected: Vec<u8> = vec![
@@ -287,36 +291,36 @@ fn generate_all() {
 
     property
         .values
-        .insert(PayloadFormatIndicator, Type::Byte(255));
+        .insert(PayloadFormatIndicator, DataType::Byte(255));
 
     property
         .values
-        .insert(ServerKeepAlive, Type::TwoByteInteger(515));
+        .insert(ServerKeepAlive, DataType::TwoByteInteger(515));
 
     property
         .values
-        .insert(MessageExpiryInterval, Type::FourByteInteger(33752069));
+        .insert(MessageExpiryInterval, DataType::FourByteInteger(33752069));
 
     property.values.insert(
         SubscriptionIdentifier,
-        Type::VariableByteInteger(VariableByte::Four(268435455)),
+        DataType::VariableByteInteger(VariableByte::Four(268435455)),
     );
 
     property.values.insert(
         CorrelationData,
-        Type::BinaryData(vec![
+        DataType::BinaryData(vec![
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
         ]),
     );
 
     property.values.insert(
         ServerReference,
-        Type::Utf8EncodedString("hello world".to_string()),
+        DataType::Utf8EncodedString("hello world".to_string()),
     );
 
     property.values.insert(
         UserProperty,
-        Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string()),
+        DataType::Utf8StringPair("hello world".to_string(), "foo bar".to_string()),
     );
 
     let expected = all_data();

@@ -12,7 +12,7 @@ pub enum VariableByte {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum Type {
+pub enum DataType {
     Byte(u8),
     TwoByteInteger(u16),
     FourByteInteger(u32),
@@ -22,9 +22,9 @@ pub enum Type {
     Utf8StringPair(String, String),
 }
 
-impl From<Type> for u16 {
-    fn from(t: Type) -> Self {
-        if let Type::TwoByteInteger(value) = t {
+impl From<DataType> for u16 {
+    fn from(t: DataType) -> Self {
+        if let DataType::TwoByteInteger(value) = t {
             return value;
         } else {
             return 0;
@@ -32,7 +32,7 @@ impl From<Type> for u16 {
     }
 }
 
-impl Type {
+impl DataType {
     /**
      * 1.5.1 Bits
      * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901007
@@ -312,7 +312,7 @@ impl Type {
     }
 
     /**
-     * Convert Type variants into u8 vectors.
+     * Convert DataType variants into u8 vectors.
      */
     pub fn into_bytes(&self) -> Vec<u8> {
         match self {
@@ -335,33 +335,33 @@ impl Type {
 
 #[cfg(test)]
 mod tests {
-    use super::{Type, VariableByte};
+    use super::{DataType, VariableByte};
     use std::io;
 
     #[test]
     fn byte() {
         let reader: Vec<u8> = vec![0xFF, 0x02];
-        let byte = Type::parse_byte(&*reader);
-        assert_eq!(byte, super::Type::Byte(255));
+        let byte = DataType::parse_byte(&*reader);
+        assert_eq!(byte, super::DataType::Byte(255));
     }
 
     #[test]
     fn two_byte() {
         let reader: Vec<u8> = vec![0x01, 0x02, 0x03];
-        let two = Type::parse_two_byte_int(&*reader);
-        assert_eq!(two, super::Type::TwoByteInteger(258));
+        let two = DataType::parse_two_byte_int(&*reader);
+        assert_eq!(two, super::DataType::TwoByteInteger(258));
     }
 
     #[test]
     fn type_into() {
         let mut reader: Vec<u8> = vec![0x01, 0x02, 0x03];
-        let two = Type::parse_two_byte_int(&*reader);
+        let two = DataType::parse_two_byte_int(&*reader);
         let mut check: u16 = two.into();
         assert_eq!(258, check);
 
         // any other type should return 0 for now
         reader = vec![0x01, 0x02, 0x03, 0x04, 0x05];
-        let four = Type::parse_four_byte_int(&*reader);
+        let four = DataType::parse_four_byte_int(&*reader);
         check = four.into();
         assert_eq!(0, check);
     }
@@ -369,8 +369,8 @@ mod tests {
     #[test]
     fn four_byte() {
         let reader: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05];
-        let four = Type::parse_four_byte_int(&*reader);
-        assert_eq!(four, Type::FourByteInteger(16909060));
+        let four = DataType::parse_four_byte_int(&*reader);
+        assert_eq!(four, DataType::FourByteInteger(16909060));
     }
 
     #[test]
@@ -380,66 +380,78 @@ mod tests {
         ];
 
         let reader = io::BufReader::new(&*data);
-        let result = Type::parse_utf8_string(reader);
-        assert_eq!(result, Type::Utf8EncodedString(String::from("hello world")));
+        let result = DataType::parse_utf8_string(reader);
+        assert_eq!(
+            result,
+            DataType::Utf8EncodedString(String::from("hello world"))
+        );
     }
 
     #[test]
     fn variable_byte_one() {
         let mut vari: Vec<u8> = vec![0x00];
-        let mut vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::VariableByteInteger(VariableByte::One(0)));
+        let mut vari_type = DataType::parse_variable_byte_int(&*vari);
+        assert_eq!(
+            vari_type,
+            DataType::VariableByteInteger(VariableByte::One(0))
+        );
 
         vari = vec![0x7F];
-        vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::VariableByteInteger(VariableByte::One(127)));
+        vari_type = DataType::parse_variable_byte_int(&*vari);
+        assert_eq!(
+            vari_type,
+            DataType::VariableByteInteger(VariableByte::One(127))
+        );
     }
 
     #[test]
     fn variable_byte_two() {
         let mut vari: Vec<u8> = vec![0x80, 0x01];
-        let mut vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::VariableByteInteger(VariableByte::Two(128)));
-
-        vari = vec![0xFF, 0x7F];
-        vari_type = Type::parse_variable_byte_int(&*vari);
+        let mut vari_type = DataType::parse_variable_byte_int(&*vari);
         assert_eq!(
             vari_type,
-            Type::VariableByteInteger(VariableByte::Two(16383))
+            DataType::VariableByteInteger(VariableByte::Two(128))
+        );
+
+        vari = vec![0xFF, 0x7F];
+        vari_type = DataType::parse_variable_byte_int(&*vari);
+        assert_eq!(
+            vari_type,
+            DataType::VariableByteInteger(VariableByte::Two(16383))
         );
     }
 
     #[test]
     fn variable_byte_three() {
         let mut vari: Vec<u8> = vec![0x80, 0x80, 0x01];
-        let mut vari_type = Type::parse_variable_byte_int(&*vari);
+        let mut vari_type = DataType::parse_variable_byte_int(&*vari);
         assert_eq!(
             vari_type,
-            Type::VariableByteInteger(VariableByte::Three(16384))
+            DataType::VariableByteInteger(VariableByte::Three(16384))
         );
 
         vari = vec![0xFF, 0xFF, 0x7F];
-        vari_type = Type::parse_variable_byte_int(&*vari);
+        vari_type = DataType::parse_variable_byte_int(&*vari);
         assert_eq!(
             vari_type,
-            Type::VariableByteInteger(VariableByte::Three(2097151))
+            DataType::VariableByteInteger(VariableByte::Three(2097151))
         );
     }
 
     #[test]
     fn variable_byte_four() {
         let mut vari: Vec<u8> = vec![0x80, 0x80, 0x80, 0x01];
-        let mut vari_type = Type::parse_variable_byte_int(&*vari);
+        let mut vari_type = DataType::parse_variable_byte_int(&*vari);
         assert_eq!(
             vari_type,
-            Type::VariableByteInteger(VariableByte::Four(2097152))
+            DataType::VariableByteInteger(VariableByte::Four(2097152))
         );
 
         vari = vec![0xFF, 0xFF, 0xFF, 0x7F];
-        vari_type = Type::parse_variable_byte_int(&*vari);
+        vari_type = DataType::parse_variable_byte_int(&*vari);
         assert_eq!(
             vari_type,
-            Type::VariableByteInteger(VariableByte::Four(268435455))
+            DataType::VariableByteInteger(VariableByte::Four(268435455))
         );
     }
 
@@ -447,7 +459,7 @@ mod tests {
     #[should_panic]
     fn variable_byte_panic() {
         let vari: Vec<u8> = vec![0xFF, 0xFF, 0xFF, 0xFF];
-        let _vari_type = Type::parse_variable_byte_int(&*vari);
+        let _vari_type = DataType::parse_variable_byte_int(&*vari);
     }
 
     #[test]
@@ -457,10 +469,10 @@ mod tests {
         ];
 
         let reader = io::BufReader::new(&*data);
-        let result = Type::parse_binary_data(reader);
+        let result = DataType::parse_binary_data(reader);
 
         let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
-        assert_eq!(result, Type::BinaryData(expected));
+        assert_eq!(result, DataType::BinaryData(expected));
     }
 
     #[test]
@@ -471,75 +483,75 @@ mod tests {
         ];
 
         let reader = io::BufReader::new(&*data);
-        let result = Type::parse_utf8_string_pair(reader);
+        let result = DataType::parse_utf8_string_pair(reader);
 
         assert_eq!(
             result,
-            Type::Utf8StringPair(String::from("hello world"), String::from("foo bar"))
+            DataType::Utf8StringPair(String::from("hello world"), String::from("foo bar"))
         );
     }
 
     #[test]
     fn byte_into_bytes() {
-        let value = Type::Byte(255);
+        let value = DataType::Byte(255);
         let expected: Vec<u8> = vec![0xFF];
         assert_eq!(value.into_bytes(), expected);
     }
 
     #[test]
     fn two_byte_int_into_bytes() {
-        let value = Type::TwoByteInteger(258);
+        let value = DataType::TwoByteInteger(258);
         let expected: Vec<u8> = vec![0x01, 0x02];
         assert_eq!(value.into_bytes(), expected);
     }
 
     #[test]
     fn four_byte_into_bytes() {
-        let value = Type::FourByteInteger(16909060);
+        let value = DataType::FourByteInteger(16909060);
         let expected: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04];
         assert_eq!(value.into_bytes(), expected);
     }
 
     #[test]
     fn variable_byte_one_into_bytes() {
-        let mut vari = Type::VariableByteInteger(VariableByte::One(0));
+        let mut vari = DataType::VariableByteInteger(VariableByte::One(0));
         let mut expected: Vec<u8> = vec![0x00];
         assert_eq!(vari.into_bytes(), expected);
 
-        vari = Type::VariableByteInteger(VariableByte::One(127));
+        vari = DataType::VariableByteInteger(VariableByte::One(127));
         expected = vec![0x7F];
         assert_eq!(vari.into_bytes(), expected);
     }
 
     #[test]
     fn variable_byte_two_into_bytes() {
-        let mut vari = Type::VariableByteInteger(VariableByte::Two(128));
+        let mut vari = DataType::VariableByteInteger(VariableByte::Two(128));
         let mut expected: Vec<u8> = vec![0x80, 0x01];
         assert_eq!(vari.into_bytes(), expected);
 
-        vari = Type::VariableByteInteger(VariableByte::Two(16383));
+        vari = DataType::VariableByteInteger(VariableByte::Two(16383));
         expected = vec![0xFF, 0x7F];
         assert_eq!(vari.into_bytes(), expected);
     }
 
     #[test]
     fn variable_byte_three_into_bytes() {
-        let mut vari = Type::VariableByteInteger(VariableByte::Three(16384));
+        let mut vari = DataType::VariableByteInteger(VariableByte::Three(16384));
         let mut expected: Vec<u8> = vec![0x80, 0x80, 0x01];
         assert_eq!(vari.into_bytes(), expected);
 
-        vari = Type::VariableByteInteger(VariableByte::Three(2097151));
+        vari = DataType::VariableByteInteger(VariableByte::Three(2097151));
         expected = vec![0xFF, 0xFF, 0x7F];
         assert_eq!(vari.into_bytes(), expected);
     }
 
     #[test]
     fn variable_byte_four_into_bytes() {
-        let mut vari = Type::VariableByteInteger(VariableByte::Four(2097152));
+        let mut vari = DataType::VariableByteInteger(VariableByte::Four(2097152));
         let mut expected: Vec<u8> = vec![0x80, 0x80, 0x80, 0x01];
         assert_eq!(vari.into_bytes(), expected);
 
-        vari = Type::VariableByteInteger(VariableByte::Four(268435455));
+        vari = DataType::VariableByteInteger(VariableByte::Four(268435455));
         expected = vec![0xFF, 0xFF, 0xFF, 0x7F];
         assert_eq!(vari.into_bytes(), expected);
     }
@@ -547,20 +559,20 @@ mod tests {
     #[test]
     #[should_panic]
     fn variable_byte_into_bytes_panic() {
-        let vari = Type::VariableByteInteger(VariableByte::Four(268435456));
+        let vari = DataType::VariableByteInteger(VariableByte::Four(268435456));
         let _bytes = vari.into_bytes();
     }
 
     #[test]
     fn utf8_string_into_bytes() {
-        let value = Type::Utf8EncodedString("hello world".to_string());
+        let value = DataType::Utf8EncodedString("hello world".to_string());
         let expected: Vec<u8> = vec![0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100];
         assert_eq!(value.into_bytes(), expected);
     }
 
     #[test]
     fn utf8_string_pair_into_bytes() {
-        let value = Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string());
+        let value = DataType::Utf8StringPair("hello world".to_string(), "foo bar".to_string());
         let expected: Vec<u8> = vec![
             0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111, 111, 32,
             98, 97, 114,
@@ -571,7 +583,7 @@ mod tests {
     #[test]
     fn binary_data_into_bytes() {
         let data: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
-        let value = Type::BinaryData(data);
+        let value = DataType::BinaryData(data);
 
         let expected: Vec<u8> = vec![
             0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
@@ -583,7 +595,7 @@ mod tests {
     #[should_panic]
     fn into_bytes_max_length() {
         let data = [0u8; 65536];
-        let value = Type::BinaryData(data.to_vec());
+        let value = DataType::BinaryData(data.to_vec());
         let _should_panic = value.into_bytes();
     }
 }

@@ -1,4 +1,4 @@
-use super::data_type::Type;
+use super::data_type::DataType;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
@@ -49,19 +49,19 @@ pub enum Identifier {
 }
 
 pub struct Property {
-    pub values: BTreeMap<Identifier, Type>,
+    pub values: BTreeMap<Identifier, DataType>,
 }
 
 impl Property {
     /**
-     * Parse property values from a reader into Type variants.
+     * Parse property values from a reader into DataType variants.
      */
     pub fn parse<R>(mut reader: R) -> Self
     where
         R: io::Read,
     {
         use Identifier::*;
-        let length = Type::parse_two_byte_int(&mut reader);
+        let length = DataType::parse_two_byte_int(&mut reader);
         let mut properties = BTreeMap::new();
 
         for _i in 0..length.into() {
@@ -82,24 +82,24 @@ impl Property {
                 | RetainAvailable
                 | WildcardSubscriptionAvailable
                 | SubscriptionIdentifierAvailable
-                | SharedSubscriptionAvailable => Type::parse_byte(&mut reader),
+                | SharedSubscriptionAvailable => DataType::parse_byte(&mut reader),
                 ServerKeepAlive | ReceiveMaximum | TopicAliasMaximum | TopicAlias => {
-                    Type::parse_two_byte_int(&mut reader)
+                    DataType::parse_two_byte_int(&mut reader)
                 }
                 MessageExpiryInterval
                 | SessionExpiryInterval
                 | WillDelayInterval
-                | MaximumPacketSize => Type::parse_four_byte_int(&mut reader),
-                SubscriptionIdentifier => Type::parse_variable_byte_int(&mut reader),
-                UserProperty => Type::parse_utf8_string_pair(&mut reader),
-                CorrelationData | AuthenticationData => Type::parse_binary_data(&mut reader),
+                | MaximumPacketSize => DataType::parse_four_byte_int(&mut reader),
+                SubscriptionIdentifier => DataType::parse_variable_byte_int(&mut reader),
+                UserProperty => DataType::parse_utf8_string_pair(&mut reader),
+                CorrelationData | AuthenticationData => DataType::parse_binary_data(&mut reader),
                 ContentType
                 | ResponseTopic
                 | AssignedClientIdentifier
                 | AuthenticationMethod
                 | ResponseInformation
                 | ServerReference
-                | ReasonString => Type::parse_utf8_string(&mut reader),
+                | ReasonString => DataType::parse_utf8_string(&mut reader),
             };
             properties.insert(identifier, parsed);
         }

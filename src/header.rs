@@ -1,3 +1,5 @@
+use super::data_type::DataType;
+use super::property::Property;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 
@@ -25,4 +27,11 @@ pub enum PacketType {
     PINGRESP,
     DISCONNECT,
     AUTH,
+}
+
+pub struct Header {
+    pub packet_type: PacketType,
+    pub flags: DataType,
+    pub properties: Property,
+    pub identifier: DataType,
 }
