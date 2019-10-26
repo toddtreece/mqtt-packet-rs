@@ -2,7 +2,6 @@ use super::data_type::Type;
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
-use std::fmt::{self, Debug};
 use std::io;
 
 /**
@@ -46,12 +45,6 @@ pub enum Indentifier {
     WildcardSubscriptionAvailable = 0x28,
     SubscriptionIdentifierAvailable = 0x29,
     SharedSubscriptionAvailable = 0x2a,
-}
-
-impl fmt::Display for Indentifier {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Debug::fmt(self, f)
-    }
 }
 
 pub struct Property {
@@ -114,18 +107,5 @@ impl Property {
             bytes.push(value.into_bytes());
         }
         return bytes.concat();
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::Indentifier;
-
-    #[test]
-    fn display() {
-        assert_eq!(
-            Indentifier::AssignedClientIdentifier.to_string(),
-            "AssignedClientIdentifier".to_string()
-        );
     }
 }
