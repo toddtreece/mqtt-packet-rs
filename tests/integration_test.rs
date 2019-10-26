@@ -1,4 +1,4 @@
-use mqtt_packet::data_type::Type;
+use mqtt_packet::data_type::{Type, VariableByte};
 use mqtt_packet::property::{Indentifier::*, Property};
 use std::collections::BTreeMap;
 use std::io;
@@ -44,7 +44,10 @@ fn parse_variable_byte() {
     let reader: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
     let property = Property::parse(&*reader);
     match property.values.get(&SubscriptionIdentifier) {
-        Some(value) => assert_eq!(value, &Type::FourByteInteger(268435455)),
+        Some(value) => assert_eq!(
+            value,
+            &Type::VariableByteInteger(VariableByte::Four(268435455))
+        ),
         None => panic!("Not a valid property"),
     }
 }
@@ -145,8 +148,63 @@ fn generate_variable_byte() {
         values: BTreeMap::new(),
     };
 
-    property.values.insert(SubscriptionIdentifier, Type::FourByteInteger(268435455)),
+    property.values.insert(
+        SubscriptionIdentifier,
+        Type::VariableByteInteger(VariableByte::Four(268435455)),
+    );
 
     let expected: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+    assert_eq!(property.generate(), expected);
+}
+
+#[test]
+fn generate_binary_data() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+
+    let data: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
+    property
+        .values
+        .insert(CorrelationData, Type::BinaryData(data));
+
+    let expected: Vec<u8> = vec![
+        0x00, 0x01, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    ];
+    assert_eq!(property.generate(), expected);
+}
+
+#[test]
+fn generate_utf8_string() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+
+    property.values.insert(
+        ServerReference,
+        Type::Utf8EncodedString("hello world".to_string()),
+    );
+
+    let expected: Vec<u8> = vec![
+        0x00, 0x01, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
+    ];
+
+    assert_eq!(property.generate(), expected);
+}
+
+#[test]
+fn generate_utf8_string_pair() {
+    let mut property = Property {
+        values: BTreeMap::new(),
+    };
+    property.values.insert(
+        UserProperty,
+        Type::Utf8StringPair("hello world".to_string(), "foo bar".to_string()),
+    );
+
+    let expected: Vec<u8> = vec![
+        0x00, 0x01, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102,
+        111, 111, 32, 98, 97, 114,
+    ];
     assert_eq!(property.generate(), expected);
 }

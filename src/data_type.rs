@@ -1,17 +1,22 @@
-use std::convert::TryFrom;
+use std::convert::{TryFrom, TryInto};
 use std::io;
 use std::io::prelude::*;
 use std::string::String;
 
-/**
- * 1.5 Data representation
- * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901006
- */
+#[derive(Debug, PartialEq)]
+pub enum VariableByte {
+    One(u8),
+    Two(u16),
+    Three(u32),
+    Four(u32),
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Type {
     Byte(u8),
     TwoByteInteger(u16),
     FourByteInteger(u32),
+    VariableByteInteger(VariableByte),
     Utf8EncodedString(String),
     BinaryData(Vec<u8>),
     Utf8StringPair(String, String),
@@ -136,13 +141,13 @@ impl Type {
         R: io::Read,
     {
         let mut more: bool = true;
-        let mut multiplier: u32 = 1;
-        let mut value: u32 = 0;
+        let mut multiplier: i32 = 1;
+        let mut value: i32 = 0;
 
         while more {
             let mut b = [0; 1];
             reader.read(&mut b).expect("Reading error");
-            value = value + u32::from(b[0] & 127) * multiplier;
+            value = value + i32::from(b[0] & 127) * multiplier;
 
             if multiplier > (128 * 128 * 128) {
                 panic!("Malformed VariableByteInteger");
@@ -155,13 +160,18 @@ impl Type {
             }
         }
 
-        if value <= u8::max_value().into() {
-            return Self::Byte(u8::try_from(value).unwrap());
-        } else if value <= u16::max_value().into() {
-            return Self::TwoByteInteger(u16::try_from(value).unwrap());
-        } else {
-            return Self::FourByteInteger(value);
-        }
+        return match value {
+            n if n <= 127 => {
+                Self::VariableByteInteger(VariableByte::One(u8::try_from(value).unwrap()))
+            }
+            n if n <= 16383 => {
+                Self::VariableByteInteger(VariableByte::Two(u16::try_from(value).unwrap()))
+            }
+            n if n <= 2097151 => {
+                Self::VariableByteInteger(VariableByte::Three(u32::try_from(value).unwrap()))
+            }
+            _ => Self::VariableByteInteger(VariableByte::Four(u32::try_from(value).unwrap())),
+        };
     }
 
     /**
@@ -224,6 +234,36 @@ impl Type {
         return [&length[..], &data[..]].concat();
     }
 
+    fn encode_variable_byte(data: &VariableByte) -> Vec<u8> {
+        let mut bytes = vec![];
+        let mut number: u32 = match data {
+            VariableByte::One(value) => u32::from(*value),
+            VariableByte::Two(value) => u32::from(*value),
+            VariableByte::Three(value) => u32::from(*value),
+            VariableByte::Four(value) => u32::from(*value),
+        };
+
+        if number > 268435455 {
+            panic!("The max value of a VariableByteInteger is 2368435455");
+        }
+
+        loop {
+            // we are safe to unwrap here because (number % 128) will neveer be bigger than 127
+            let mut encoded_byte: u8 = (number % 128).try_into().unwrap();
+            number = number / 128;
+
+            if number > 0 {
+                encoded_byte = encoded_byte | 128;
+                bytes.push(encoded_byte);
+            } else {
+                bytes.push(encoded_byte);
+                break;
+            }
+        }
+
+        return bytes;
+    }
+
     /**
      * Convert Type variants into u8 vectors.
      */
@@ -232,6 +272,7 @@ impl Type {
             Self::Byte(value) => value.to_be_bytes().to_vec(),
             Self::TwoByteInteger(value) => value.to_be_bytes().to_vec(),
             Self::FourByteInteger(value) => value.to_be_bytes().to_vec(),
+            Self::VariableByteInteger(value) => Self::encode_variable_byte(value),
             Self::Utf8EncodedString(value) => Self::calculate_length(value.as_bytes().to_vec()),
             Self::BinaryData(value) => Self::calculate_length(value.to_vec()),
             Self::Utf8StringPair(one, two) => {
@@ -247,7 +288,7 @@ impl Type {
 
 #[cfg(test)]
 mod tests {
-    use super::Type;
+    use super::{Type, VariableByte};
     use std::io;
 
     #[test]
@@ -300,44 +341,59 @@ mod tests {
     fn variable_byte_one() {
         let mut vari: Vec<u8> = vec![0x00];
         let mut vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::Byte(0));
+        assert_eq!(vari_type, Type::VariableByteInteger(VariableByte::One(0)));
 
         vari = vec![0x7F];
         vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::Byte(127));
+        assert_eq!(vari_type, Type::VariableByteInteger(VariableByte::One(127)));
     }
 
     #[test]
     fn variable_byte_two() {
         let mut vari: Vec<u8> = vec![0x80, 0x01];
         let mut vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::Byte(128));
+        assert_eq!(vari_type, Type::VariableByteInteger(VariableByte::Two(128)));
 
         vari = vec![0xFF, 0x7F];
         vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::TwoByteInteger(16383));
+        assert_eq!(
+            vari_type,
+            Type::VariableByteInteger(VariableByte::Two(16383))
+        );
     }
 
     #[test]
     fn variable_byte_three() {
         let mut vari: Vec<u8> = vec![0x80, 0x80, 0x01];
         let mut vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::TwoByteInteger(16384));
+        assert_eq!(
+            vari_type,
+            Type::VariableByteInteger(VariableByte::Three(16384))
+        );
 
         vari = vec![0xFF, 0xFF, 0x7F];
         vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::FourByteInteger(2097151));
+        assert_eq!(
+            vari_type,
+            Type::VariableByteInteger(VariableByte::Three(2097151))
+        );
     }
 
     #[test]
     fn variable_byte_four() {
         let mut vari: Vec<u8> = vec![0x80, 0x80, 0x80, 0x01];
         let mut vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::FourByteInteger(2097152));
+        assert_eq!(
+            vari_type,
+            Type::VariableByteInteger(VariableByte::Four(2097152))
+        );
 
         vari = vec![0xFF, 0xFF, 0xFF, 0x7F];
         vari_type = Type::parse_variable_byte_int(&*vari);
-        assert_eq!(vari_type, Type::FourByteInteger(268435455));
+        assert_eq!(
+            vari_type,
+            Type::VariableByteInteger(VariableByte::Four(268435455))
+        );
     }
 
     #[test]
@@ -395,6 +451,57 @@ mod tests {
         let value = Type::FourByteInteger(16909060);
         let expected: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04];
         assert_eq!(value.into_bytes(), expected);
+    }
+
+    #[test]
+    fn variable_byte_one_into_bytes() {
+        let mut vari = Type::VariableByteInteger(VariableByte::One(0));
+        let mut expected: Vec<u8> = vec![0x00];
+        assert_eq!(vari.into_bytes(), expected);
+
+        vari = Type::VariableByteInteger(VariableByte::One(127));
+        expected = vec![0x7F];
+        assert_eq!(vari.into_bytes(), expected);
+    }
+
+    #[test]
+    fn variable_byte_two_into_bytes() {
+        let mut vari = Type::VariableByteInteger(VariableByte::Two(128));
+        let mut expected: Vec<u8> = vec![0x80, 0x01];
+        assert_eq!(vari.into_bytes(), expected);
+
+        vari = Type::VariableByteInteger(VariableByte::Two(16383));
+        expected = vec![0xFF, 0x7F];
+        assert_eq!(vari.into_bytes(), expected);
+    }
+
+    #[test]
+    fn variable_byte_three_into_bytes() {
+        let mut vari = Type::VariableByteInteger(VariableByte::Three(16384));
+        let mut expected: Vec<u8> = vec![0x80, 0x80, 0x01];
+        assert_eq!(vari.into_bytes(), expected);
+
+        vari = Type::VariableByteInteger(VariableByte::Three(2097151));
+        expected = vec![0xFF, 0xFF, 0x7F];
+        assert_eq!(vari.into_bytes(), expected);
+    }
+
+    #[test]
+    fn variable_byte_four_into_bytes() {
+        let mut vari = Type::VariableByteInteger(VariableByte::Four(2097152));
+        let mut expected: Vec<u8> = vec![0x80, 0x80, 0x80, 0x01];
+        assert_eq!(vari.into_bytes(), expected);
+
+        vari = Type::VariableByteInteger(VariableByte::Four(268435455));
+        expected = vec![0xFF, 0xFF, 0xFF, 0x7F];
+        assert_eq!(vari.into_bytes(), expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn variable_byte_into_bytes_panic() {
+        let vari = Type::VariableByteInteger(VariableByte::Four(268435456));
+        let _bytes = vari.into_bytes();
     }
 
     #[test]
