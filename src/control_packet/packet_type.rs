@@ -12,60 +12,60 @@ use std::io;
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum PacketType {
-    CONNECT = 1,
-    CONNACK,
-    PUBLISH,
-    PUBACK,
-    PUBREC,
-    PUBREL,
-    PUBCOMP,
-    SUBSCRIBE,
-    SUBACK,
-    UNSUBSCRIBE,
-    UNSUBACK,
-    PINGREQ,
-    PINGRESP,
-    DISCONNECT,
-    AUTH,
+  CONNECT = 1,
+  CONNACK,
+  PUBLISH,
+  PUBACK,
+  PUBREC,
+  PUBREL,
+  PUBCOMP,
+  SUBSCRIBE,
+  SUBACK,
+  UNSUBSCRIBE,
+  UNSUBACK,
+  PINGREQ,
+  PINGRESP,
+  DISCONNECT,
+  AUTH,
 }
 
 impl PacketType {
-    /**
-     * Parse property values from a reader into DataType variants.
-     */
-    pub fn new<R>(mut reader: R) -> Self
-    where
-        R: io::Read,
-    {
-        let byte = DataType::parse_byte(&mut reader);
-        if let DataType::Byte(value) = byte {
-            let type_number: u8 = (value & 0xF0) >> 4;
-            return PacketType::from_u8(type_number).unwrap();
-        } else {
-            panic!("Unknown control packet type");
-        }
+  /**
+   * Parse property values from a reader into DataType variants.
+   */
+  pub fn new<R>(mut reader: R) -> Self
+  where
+    R: io::Read,
+  {
+    let byte = DataType::parse_byte(&mut reader);
+    if let DataType::Byte(value) = byte {
+      let type_number: u8 = (value & 0xF0) >> 4;
+      return PacketType::from_u8(type_number).unwrap();
+    } else {
+      panic!("Unknown control packet type");
     }
+  }
 }
 
 mod tests {
-    #[test]
-    fn connect() {
-        let reader: Vec<u8> = vec![0x10];
-        let packet_type = super::PacketType::new(&*reader);
-        assert_eq!(packet_type, super::PacketType::CONNECT);
-    }
+  #[test]
+  fn connect() {
+    let reader: Vec<u8> = vec![0x10];
+    let packet_type = super::PacketType::new(&*reader);
+    assert_eq!(packet_type, super::PacketType::CONNECT);
+  }
 
-    #[test]
-    fn auth() {
-        let reader: Vec<u8> = vec![0xF0];
-        let packet_type = super::PacketType::new(&*reader);
-        assert_eq!(packet_type, super::PacketType::AUTH);
-    }
+  #[test]
+  fn auth() {
+    let reader: Vec<u8> = vec![0xF0];
+    let packet_type = super::PacketType::new(&*reader);
+    assert_eq!(packet_type, super::PacketType::AUTH);
+  }
 
-    #[test]
-    #[should_panic]
-    fn packet_type_panic() {
-        let reader: Vec<u8> = vec![0x00];
-        let _packet_type = super::PacketType::new(&*reader);
-    }
+  #[test]
+  #[should_panic]
+  fn packet_type_panic() {
+    let reader: Vec<u8> = vec![0x00];
+    let _packet_type = super::PacketType::new(&*reader);
+  }
 }

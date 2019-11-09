@@ -19,115 +19,114 @@ use std::io;
 #[repr(u8)]
 #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
 pub enum Identifier {
-    PayloadFormatIndicator = 0x01,
-    MessageExpiryInterval = 0x02,
-    ContentType = 0x03,
-    ResponseTopic = 0x08,
-    CorrelationData = 0x09,
-    SubscriptionIdentifier = 0x0b,
-    SessionExpiryInterval = 0x11,
-    AssignedClientIdentifier = 0x12,
-    ServerKeepAlive = 0x13,
-    AuthenticationMethod = 0x15,
-    AuthenticationData = 0x16,
-    RequestProblemInformation = 0x17,
-    WillDelayInterval = 0x18,
-    RequestResponseInformation = 0x19,
-    ResponseInformation = 0x1a,
-    ServerReference = 0x1c,
-    ReasonString = 0x1f,
-    ReceiveMaximum = 0x21,
-    TopicAliasMaximum = 0x22,
-    TopicAlias = 0x23,
-    MaximumQos = 0x24,
-    RetainAvailable = 0x25,
-    UserProperty = 0x26,
-    MaximumPacketSize = 0x27,
-    WildcardSubscriptionAvailable = 0x28,
-    SubscriptionIdentifierAvailable = 0x29,
-    SharedSubscriptionAvailable = 0x2a,
+  PayloadFormatIndicator = 0x01,
+  MessageExpiryInterval = 0x02,
+  ContentType = 0x03,
+  ResponseTopic = 0x08,
+  CorrelationData = 0x09,
+  SubscriptionIdentifier = 0x0b,
+  SessionExpiryInterval = 0x11,
+  AssignedClientIdentifier = 0x12,
+  ServerKeepAlive = 0x13,
+  AuthenticationMethod = 0x15,
+  AuthenticationData = 0x16,
+  RequestProblemInformation = 0x17,
+  WillDelayInterval = 0x18,
+  RequestResponseInformation = 0x19,
+  ResponseInformation = 0x1a,
+  ServerReference = 0x1c,
+  ReasonString = 0x1f,
+  ReceiveMaximum = 0x21,
+  TopicAliasMaximum = 0x22,
+  TopicAlias = 0x23,
+  MaximumQos = 0x24,
+  RetainAvailable = 0x25,
+  UserProperty = 0x26,
+  MaximumPacketSize = 0x27,
+  WildcardSubscriptionAvailable = 0x28,
+  SubscriptionIdentifierAvailable = 0x29,
+  SharedSubscriptionAvailable = 0x2a,
 }
 
 pub struct Property {
-    pub values: BTreeMap<Identifier, DataType>,
+  pub values: BTreeMap<Identifier, DataType>,
 }
 
 impl Property {
-    /**
-     * Parse property values from a reader into DataType variants.
-     */
-    pub fn parse<R>(mut reader: R) -> Self
-    where
-        R: io::Read,
-    {
-        use Identifier::*;
-        let length = DataType::parse_two_byte_int(&mut reader);
-        let mut properties = BTreeMap::new();
+  /**
+   * Parse property values from a reader into DataType variants.
+   */
+  pub fn parse<R>(mut reader: R) -> Self
+  where
+    R: io::Read,
+  {
+    use Identifier::*;
+    let length = DataType::parse_two_byte_int(&mut reader);
+    let mut properties = BTreeMap::new();
 
-        for _i in 0..length.into() {
-            let mut id_buffer = [0; 1];
+    for _i in 0..length.into() {
+      let mut id_buffer = [0; 1];
 
-            reader
-                .read(&mut id_buffer)
-                .expect("Unable to read property data.");
+      reader
+        .read(&mut id_buffer)
+        .expect("Unable to read property data.");
 
-            let identifier =
-                Identifier::from_u8(id_buffer[0]).expect("Unable to find matching identifier");
+      let identifier =
+        Identifier::from_u8(id_buffer[0]).expect("Unable to find matching identifier");
 
-            let parsed = match identifier {
-                PayloadFormatIndicator
-                | RequestProblemInformation
-                | RequestResponseInformation
-                | MaximumQos
-                | RetainAvailable
-                | WildcardSubscriptionAvailable
-                | SubscriptionIdentifierAvailable
-                | SharedSubscriptionAvailable => DataType::parse_byte(&mut reader),
-                ServerKeepAlive | ReceiveMaximum | TopicAliasMaximum | TopicAlias => {
-                    DataType::parse_two_byte_int(&mut reader)
-                }
-                MessageExpiryInterval
-                | SessionExpiryInterval
-                | WillDelayInterval
-                | MaximumPacketSize => DataType::parse_four_byte_int(&mut reader),
-                SubscriptionIdentifier => DataType::parse_variable_byte_int(&mut reader),
-                UserProperty => DataType::parse_utf8_string_pair(&mut reader),
-                CorrelationData | AuthenticationData => DataType::parse_binary_data(&mut reader),
-                ContentType
-                | ResponseTopic
-                | AssignedClientIdentifier
-                | AuthenticationMethod
-                | ResponseInformation
-                | ServerReference
-                | ReasonString => DataType::parse_utf8_string(&mut reader),
-            };
-            properties.insert(identifier, parsed);
+      let parsed = match identifier {
+        PayloadFormatIndicator
+        | RequestProblemInformation
+        | RequestResponseInformation
+        | MaximumQos
+        | RetainAvailable
+        | WildcardSubscriptionAvailable
+        | SubscriptionIdentifierAvailable
+        | SharedSubscriptionAvailable => DataType::parse_byte(&mut reader),
+        ServerKeepAlive | ReceiveMaximum | TopicAliasMaximum | TopicAlias => {
+          DataType::parse_two_byte_int(&mut reader)
         }
-
-        return Self { values: properties };
+        MessageExpiryInterval | SessionExpiryInterval | WillDelayInterval | MaximumPacketSize => {
+          DataType::parse_four_byte_int(&mut reader)
+        }
+        SubscriptionIdentifier => DataType::parse_variable_byte_int(&mut reader),
+        UserProperty => DataType::parse_utf8_string_pair(&mut reader),
+        CorrelationData | AuthenticationData => DataType::parse_binary_data(&mut reader),
+        ContentType
+        | ResponseTopic
+        | AssignedClientIdentifier
+        | AuthenticationMethod
+        | ResponseInformation
+        | ServerReference
+        | ReasonString => DataType::parse_utf8_string(&mut reader),
+      };
+      properties.insert(identifier, parsed);
     }
 
-    /**
-     * Convert Property values into a byte array
-     */
-    pub fn generate(&self) -> Vec<u8> {
-        // we need to fit the usize into a u16, so we can grab the first two bytes
-        let length = u16::try_from(self.values.len() & 0xFFFF)
-            .unwrap()
-            .to_be_bytes()
-            .to_vec();
+    return Self { values: properties };
+  }
 
-        // create a vector to hold the generated data
-        let mut bytes = vec![];
-        bytes.push(length);
+  /**
+   * Convert Property values into a byte array
+   */
+  pub fn generate(&self) -> Vec<u8> {
+    // we need to fit the usize into a u16, so we can grab the first two bytes
+    let length = u16::try_from(self.values.len() & 0xFFFF)
+      .unwrap()
+      .to_be_bytes()
+      .to_vec();
 
-        // PartialOrd sorts enum variants in the order they are declared.
-        for (key, value) in self.values.iter() {
-            let id: u8 = key.to_u8().unwrap();
-            bytes.push(vec![id]);
-            bytes.push(value.into_bytes());
-        }
+    // create a vector to hold the generated data
+    let mut bytes = vec![];
+    bytes.push(length);
 
-        return bytes.concat();
+    // PartialOrd sorts enum variants in the order they are declared.
+    for (key, value) in self.values.iter() {
+      let id: u8 = key.to_u8().unwrap();
+      bytes.push(vec![id]);
+      bytes.push(value.into_bytes());
     }
+
+    return bytes.concat();
+  }
 }
