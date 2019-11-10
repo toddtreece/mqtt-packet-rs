@@ -1,5 +1,5 @@
-use mqtt_packet::control_packet::property::{Identifier::*, Property};
 use mqtt_packet::data_type::{DataType, VariableByte};
+use mqtt_packet::property::{Identifier::*, Property};
 use std::collections::BTreeMap;
 use std::io;
 
