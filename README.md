@@ -1,4 +1,4 @@
-# mqtt-packet [![Build Status](https://travis-ci.org/toddtreece/mqtt_packet.svg?branch=master)](https://travis-ci.org/toddtreece/mqtt_packet) [![codecov](https://codecov.io/gh/toddtreece/mqtt_packet/branch/master/graph/badge.svg)](https://codecov.io/gh/toddtreece/mqtt_packet)
+# mqtt-packet [![Build Status](https://travis-ci.org/toddtreece/mqtt-packet.svg?branch=master)](https://travis-ci.org/toddtreece/mqtt-packet) [![codecov](https://codecov.io/gh/toddtreece/mqtt-packet/branch/master/graph/badge.svg)](https://codecov.io/gh/toddtreece/mqtt-packet) [![Crates.io](https://img.shields.io/crates/v/mqtt-packet.svg)](https://crates.io/crates/mqtt-packet)
 
 A [MQTT v5.0][mqtt] packet parser and generator written in [Rust][rust]. This crate is primarily a learning project, and is unstable due to active development.
 
