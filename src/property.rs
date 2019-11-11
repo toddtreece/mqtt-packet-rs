@@ -1,24 +1,10 @@
+use crate::build_enum;
 use crate::data_type::DataType;
-use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive, ToPrimitive};
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io;
 
-/**
- * 2.2.2.2 Property
- * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901027
- * A Property consists of an Identifier which defines its usage and data type,
- * followed by a value. The Identifier is encoded as a Variable Byte Integer.
- * A Control Packet which contains an Identifier which is not valid for its
- * packet type, or contains a value not of the specified data type, is a
- * Malformed Packet. If received, use a CONNACK or DISCONNECT packet with
- * Reason Code 0x81 (Malformed Packet). There is no significance in the order
- * of Properties with different Identifiers.
- */
-#[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
-pub enum Identifier {
+build_enum!(Identifier {
   PayloadFormatIndicator = 0x01,
   MessageExpiryInterval = 0x02,
   ContentType = 0x03,
@@ -45,9 +31,20 @@ pub enum Identifier {
   MaximumPacketSize = 0x27,
   WildcardSubscriptionAvailable = 0x28,
   SubscriptionIdentifierAvailable = 0x29,
-  SharedSubscriptionAvailable = 0x2a,
-}
+  SharedSubscriptionAvailable = 0x2a
+});
 
+/**
+ * 2.2.2.2 Property
+ * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901027
+ * A Property consists of an Identifier which defines its usage and data type,
+ * followed by a value. The Identifier is encoded as a Variable Byte Integer.
+ * A Control Packet which contains an Identifier which is not valid for its
+ * packet type, or contains a value not of the specified data type, is a
+ * Malformed Packet. If received, use a CONNACK or DISCONNECT packet with
+ * Reason Code 0x81 (Malformed Packet). There is no significance in the order
+ * of Properties with different Identifiers.
+ */
 pub struct Property {
   pub values: BTreeMap<Identifier, DataType>,
 }
@@ -71,8 +68,7 @@ impl Property {
         .read(&mut id_buffer)
         .expect("Unable to read property data.");
 
-      let identifier =
-        Identifier::from_u8(id_buffer[0]).expect("Unable to find matching identifier");
+      let identifier = Identifier::from(id_buffer[0]);
 
       let parsed = match identifier {
         PayloadFormatIndicator
@@ -122,7 +118,7 @@ impl Property {
 
     // PartialOrd sorts enum variants in the order they are declared.
     for (key, value) in self.values.iter() {
-      let id: u8 = key.to_u8().unwrap();
+      let id: u8 = u8::from(*key);
       bytes.push(vec![id]);
       bytes.push(value.into_bytes());
     }

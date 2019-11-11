@@ -1,9 +1,6 @@
-pub mod packet_type;
-pub mod property;
-
 use crate::data_type::DataType;
-use packet_type::PacketType;
-use property::Property;
+use crate::packet_type::PacketType;
+use crate::property::Property;
 
 pub struct ControlPacket {
   pub packet_type: PacketType,

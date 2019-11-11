@@ -1,7 +1,26 @@
+use crate::build_enum;
 use crate::data_type::DataType;
-use num_derive::{FromPrimitive, ToPrimitive};
-use num_traits::{FromPrimitive, ToPrimitive};
 use std::io;
+
+build_enum!(
+  PacketType {
+    CONNECT = 1,
+    CONNACK = 2,
+    PUBLISH = 3,
+    PUBACK = 4,
+    PUBREC = 5,
+    PUBREL = 6,
+    PUBCOMP = 7,
+    SUBSCRIBE = 8,
+    SUBACK = 9,
+    UNSUBSCRIBE = 10,
+    UNSUBACK = 11,
+    PINGREQ = 12,
+    PINGRESP = 13,
+    DISCONNECT = 14,
+    AUTH = 15
+  }
+);
 
 /**
  * 2.1.2 MQTT Control Packet type
@@ -9,26 +28,6 @@ use std::io;
  * Position: byte 1, bits 7-4.
  * Represented as a 4-bit unsigned value.
  */
-#[repr(u8)]
-#[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, FromPrimitive, ToPrimitive)]
-pub enum PacketType {
-  CONNECT = 1,
-  CONNACK,
-  PUBLISH,
-  PUBACK,
-  PUBREC,
-  PUBREL,
-  PUBCOMP,
-  SUBSCRIBE,
-  SUBACK,
-  UNSUBSCRIBE,
-  UNSUBACK,
-  PINGREQ,
-  PINGRESP,
-  DISCONNECT,
-  AUTH,
-}
-
 impl PacketType {
   /**
    * Parse property values from a reader into DataType variants.
@@ -40,7 +39,7 @@ impl PacketType {
     let byte = DataType::parse_byte(&mut reader);
     if let DataType::Byte(value) = byte {
       let type_number: u8 = (value & 0xF0) >> 4;
-      return PacketType::from_u8(type_number).unwrap();
+      return PacketType::from(type_number);
     } else {
       panic!("Unknown control packet type");
     }

@@ -33,12 +33,22 @@ impl From<DataType> for u16 {
 }
 
 impl DataType {
-  /**
-   * 1.5.1 Bits
-   * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901007
-   * Bits in a byte are labelled 7 to 0. Bit number 7 is the most significant
-   * bit, the least significant bit is assigned bit number 0.
-   */
+  /// Reads one byte from the reader and attempts to convert the byte to DataType::Byte (u8).
+  ///
+  /// [1.5.1 Bits](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901007)
+  ///
+  /// Bits in a byte are labelled 7 to 0. Bit number 7 is the most significant
+  /// bit, the least significant bit is assigned bit number 0.
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use mqtt_packet::data_type::DataType;
+  ///
+  /// let reader: Vec<u8> = vec![0xFF, 0x02];
+  /// let byte = DataType::parse_byte(&*reader);
+  /// assert_eq!(byte, DataType::Byte(255));
+  /// ```
   pub fn parse_byte<R>(mut reader: R) -> Self
   where
     R: io::Read,
@@ -48,14 +58,24 @@ impl DataType {
     return Self::Byte(u8::from_be_bytes(buffer));
   }
 
-  /**
-   * 1.5.2 Two Byte Integer
-   * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901008
-   * Two Byte Integer data values are 16-bit unsigned integers in big-endian
-   * order: the high order byte precedes the lower order byte. This means that a
-   * 16-bit word is presented on the network as Most Significant Byte (MSB),
-   * followed by Least Significant Byte (LSB).
-   */
+  /// Reads two bytes from the reader and attempts to convert the bytes to DataType::TwoByteInteger (u16).
+  ///
+  /// [1.5.2 Two Byte Integer](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901008)
+  ///
+  /// Two Byte Integer data values are 16-bit unsigned integers in big-endian
+  /// order: the high order byte precedes the lower order byte. This means that a
+  /// 16-bit word is presented on the network as Most Significant Byte (MSB),
+  /// followed by Least Significant Byte (LSB).
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use mqtt_packet::data_type::DataType;
+  ///
+  /// let reader: Vec<u8> = vec![0x01, 0x02, 0x03];
+  /// let two = DataType::parse_two_byte_int(&*reader);
+  /// assert_eq!(two, DataType::TwoByteInteger(258));
+  /// ```
   pub fn parse_two_byte_int<R>(mut reader: R) -> Self
   where
     R: io::Read,
@@ -69,16 +89,26 @@ impl DataType {
     return Self::TwoByteInteger(u16::from_be_bytes(buffer));
   }
 
-  /**
-   * 1.5.3 Four Byte Integer
-   * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901009
-   * Four Byte Integer data values are 32-bit unsigned integers in big-endian
-   * order: the high order byte precedes the successively lower order bytes.
-   * This means that a 32-bit word is presented on the network as Most
-   * Significant Byte (MSB), followed by the next most Significant Byte (MSB),
-   * followed by the next most Significant Byte (MSB), followed by Least
-   * Significant Byte (LSB).
-   */
+  /// Reads four bytes from the reader and attempts to convert the bytes to DataType::FourByteInteger (u32).
+  ///
+  /// [1.5.3 Four Byte Integer](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901009)
+  ///
+  /// Four Byte Integer data values are 32-bit unsigned integers in big-endian
+  /// order: the high order byte precedes the successively lower order bytes.
+  /// This means that a 32-bit word is presented on the network as Most
+  /// Significant Byte (MSB), followed by the next most Significant Byte (MSB),
+  /// followed by the next most Significant Byte (MSB), followed by Least
+  /// Significant Byte (LSB).
+  ///
+  /// # Examples
+  ///
+  /// ```rust
+  /// use mqtt_packet::data_type::DataType;
+  ///
+  /// let reader: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05];
+  /// let four = DataType::parse_four_byte_int(&*reader);
+  /// assert_eq!(four, DataType::FourByteInteger(16909060));
+  /// ```
   pub fn parse_four_byte_int<R>(mut reader: R) -> Self
   where
     R: io::Read,
@@ -335,14 +365,6 @@ impl DataType {
 mod tests {
   use super::{DataType, VariableByte};
   use std::io;
-
-  #[test]
-  fn byte() {
-    let reader: Vec<u8> = vec![0xFF, 0x02];
-    let byte = DataType::parse_byte(&*reader);
-    assert_eq!(byte, super::DataType::Byte(255));
-  }
-
   #[test]
   fn two_byte() {
     let reader: Vec<u8> = vec![0x01, 0x02, 0x03];
