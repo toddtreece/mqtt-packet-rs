@@ -10,6 +10,3 @@ keywords = ["mqtt", "packet", "parser", "generator", "iot"]
 readme = "README.md"
 edition = "2018"
 license = "MIT"
-[dependencies]
-num-traits = "0.2"
-num-derive = "0.3"
