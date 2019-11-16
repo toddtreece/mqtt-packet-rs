@@ -3,7 +3,13 @@
 //! [mqtt]: https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html
 //! [rust]: https://www.rust-lang.org/
 
-pub mod data_type;
-pub mod macros;
-pub mod packet_type;
-pub mod property;
+mod data_type;
+mod error;
+mod macros;
+mod packet_type;
+mod property;
+
+pub use data_type::{DataType, VariableByte};
+pub use error::Error;
+pub use packet_type::PacketType;
+pub use property::{Identifier, Property};
