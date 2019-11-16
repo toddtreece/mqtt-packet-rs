@@ -1,5 +1,6 @@
 use crate::build_enum;
-use crate::data_type::DataType;
+use crate::DataType;
+use crate::Error;
 use std::io;
 
 build_enum!(
@@ -22,49 +23,45 @@ build_enum!(
   }
 );
 
-/**
- * 2.1.2 MQTT Control Packet type
- * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901022
- * Position: byte 1, bits 7-4.
- * Represented as a 4-bit unsigned value.
- */
+/// [2.1.2 MQTT Control Packet type](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901022)
+///
+/// Position: byte 1, bits 7-4.
+/// Represented as a 4-bit unsigned value.
 impl PacketType {
-  /**
-   * Parse property values from a reader into DataType variants.
-   */
-  pub fn new<R>(mut reader: R) -> Self
-  where
-    R: io::Read,
-  {
-    let byte = DataType::parse_byte(&mut reader);
+  /// Parse property values from a reader into DataType variants.
+  ///
+  /// # Examples
+  /// ```rust
+  /// use mqtt_packet::PacketType;
+  /// use std::io;
+  ///
+  /// let bytes: Vec<u8> = vec![0x10];
+  /// let mut reader = io::BufReader::new(&bytes[..]);
+  ///
+  /// let packet_type = PacketType::new(&mut reader).unwrap();
+  /// assert_eq!(packet_type, PacketType::CONNECT);
+  /// ```
+  ///
+  /// # Panics
+  ///
+  /// This
+  ///
+  /// ```should_panic
+  /// use mqtt_packet::PacketType;
+  /// use std::io;
+  ///
+  /// let bytes: Vec<u8> = vec![0x00];
+  /// let mut reader = io::BufReader::new(&bytes[..]);
+  ///
+  /// PacketType::new(&mut reader);
+  /// ```
+  pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    let byte = DataType::parse_byte(reader)?;
     if let DataType::Byte(value) = byte {
       let type_number: u8 = (value & 0xF0) >> 4;
-      return PacketType::from(type_number);
+      return Ok(PacketType::from(type_number));
     } else {
-      panic!("Unknown control packet type");
+      return Err(Error::ParseError);
     }
-  }
-}
-
-mod tests {
-  #[test]
-  fn connect() {
-    let reader: Vec<u8> = vec![0x10];
-    let packet_type = super::PacketType::new(&*reader);
-    assert_eq!(packet_type, super::PacketType::CONNECT);
-  }
-
-  #[test]
-  fn auth() {
-    let reader: Vec<u8> = vec![0xF0];
-    let packet_type = super::PacketType::new(&*reader);
-    assert_eq!(packet_type, super::PacketType::AUTH);
-  }
-
-  #[test]
-  #[should_panic]
-  fn packet_type_panic() {
-    let reader: Vec<u8> = vec![0x00];
-    let _packet_type = super::PacketType::new(&*reader);
   }
 }
