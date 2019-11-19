@@ -1,16 +1,23 @@
 #[macro_export]
 macro_rules! build_enum {
-  ($name:ident {
-      $($key:ident = $value:expr), *
-  }) => {
+  (@accum (1, $name:ident { $([$($doc:expr,)*] $key:ident = $value:expr),* }))
+    => {
     #[repr(u8)]
     #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy)]
-    pub enum $name { $($key = $value,)* }
+    pub enum $name {
+      $(
+        /// # Examples
+        /// ```rust
+        $(#[doc=$doc])*
+        /// ```
+        $key = $value,
+      )*
+    }
 
     impl From<$name> for u8 {
         fn from(t: $name) -> Self {
             match t {
-              $($name::$key => $value,)*
+                $($name::$key => $value),*
             }
         }
     }
@@ -24,25 +31,19 @@ macro_rules! build_enum {
         }
     }
   };
-}
-
-mod test {
-
-  build_enum!(Foo { A = 1, B = 2 });
-
-  #[test]
-  fn from_u8() {
-    let one: Foo = Foo::from(1);
-    assert_eq!(one, Foo::A);
-    let two: Foo = Foo::from(2);
-    assert_eq!(two, Foo::B);
-  }
-
-  #[test]
-  fn to_u8() {
-    let one: u8 = u8::from(Foo::A);
-    assert_eq!(1, one);
-    let two: u8 = u8::from(Foo::B);
-    assert_eq!(2, two);
-  }
+  ($name:ident {
+      $($key:ident = $value:expr),*
+  }) => {
+    build_enum!(@accum (1, $name {
+        $(
+          [
+            concat!("use mqtt_packet::", stringify!($name), ";"),
+            concat!("let id = ", stringify!($name), "::", stringify!($key), ";"),
+            concat!("assert_eq!(u8::from(id), ", stringify!($value), ");"),
+            concat!("assert_eq!(", stringify!($name), "::from(", stringify!($value), "), id);"),
+          ]
+          $key = $value),*
+      })
+    );
+  };
 }
