@@ -1,5 +1,5 @@
 [package]
-version = "0.2.0"
+version = "0.3.0"
 name = "mqtt-packet"
 description = "MQTT Version 5.0 packet parser and generator."
 documentation = "https://docs.rs/mqtt-packet"

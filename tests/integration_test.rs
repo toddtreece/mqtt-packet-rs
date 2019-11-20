@@ -1,13 +1,13 @@
-use mqtt_packet::data_type::{DataType, VariableByte};
-use mqtt_packet::property::{Identifier::*, Property};
+use mqtt_packet::{DataType, VariableByte};
+use mqtt_packet::{Identifier::*, Property};
 use std::collections::BTreeMap;
 use std::io;
 
 #[test]
 fn parse_byte() {
-  let reader: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
-  let property = Property::parse(&*reader);
-
+  let data: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
   match property.values.get(&PayloadFormatIndicator) {
     Some(value) => assert_eq!(value, &DataType::Byte(255)),
     None => panic!("Not a valid property"),
@@ -21,8 +21,9 @@ fn parse_byte() {
 
 #[test]
 fn parse_two_byte() {
-  let reader: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
-  let property = Property::parse(&*reader);
+  let data: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
   match property.values.get(&ServerKeepAlive) {
     Some(value) => assert_eq!(value, &DataType::TwoByteInteger(515)),
     None => panic!("Not a valid property"),
@@ -31,8 +32,9 @@ fn parse_two_byte() {
 
 #[test]
 fn parse_four_byte() {
-  let reader: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
-  let property = Property::parse(&*reader);
+  let data: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
   match property.values.get(&MessageExpiryInterval) {
     Some(value) => assert_eq!(value, &DataType::FourByteInteger(33752069)),
     None => panic!("Not a valid property"),
@@ -41,8 +43,9 @@ fn parse_four_byte() {
 
 #[test]
 fn parse_variable_byte() {
-  let reader: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
-  let property = Property::parse(&*reader);
+  let data: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
   match property.values.get(&SubscriptionIdentifier) {
     Some(value) => assert_eq!(
       value,
@@ -57,8 +60,8 @@ fn parse_binary_data() {
   let data: Vec<u8> = vec![
     0x00, 0x01, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
   ];
-  let reader = io::BufReader::new(&*data);
-  let property = Property::parse(reader);
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
 
   let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
   match property.values.get(&CorrelationData) {
@@ -72,8 +75,8 @@ fn parse_utf8_string() {
   let data: Vec<u8> = vec![
     0x00, 0x01, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 100, 100, 100,
   ];
-  let reader = io::BufReader::new(&*data);
-  let property = Property::parse(reader);
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
   match property.values.get(&ServerReference) {
     Some(value) => assert_eq!(
       value,
@@ -89,8 +92,8 @@ fn parse_utf8_string_pair() {
     0x00, 0x01, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111,
     111, 32, 98, 97, 114, 1, 1, 1, 1,
   ];
-  let reader = io::BufReader::new(&*data);
-  let property = Property::parse(reader);
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
   match property.values.get(&UserProperty) {
     Some(value) => assert_eq!(
       value,
@@ -140,8 +143,8 @@ fn all_data() -> Vec<u8> {
 #[test]
 fn parse_all() {
   let data = all_data();
-  let reader = io::BufReader::new(&*data);
-  let property = Property::parse(reader);
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
 
   for (identifier, value) in &property.values {
     match identifier {
@@ -184,7 +187,7 @@ fn generate_byte() {
   property.values.insert(MaximumQos, DataType::Byte(2));
 
   let expected: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }
 
 #[test]
@@ -198,7 +201,7 @@ fn generate_two_byte() {
     .insert(ServerKeepAlive, DataType::TwoByteInteger(515));
 
   let expected: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }
 
 #[test]
@@ -212,7 +215,7 @@ fn generate_four_byte() {
     .insert(MessageExpiryInterval, DataType::FourByteInteger(33752069));
 
   let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }
 
 #[test]
@@ -227,7 +230,7 @@ fn generate_variable_byte() {
   );
 
   let expected: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }
 
 #[test]
@@ -244,7 +247,7 @@ fn generate_binary_data() {
   let expected: Vec<u8> = vec![
     0x00, 0x01, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
   ];
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }
 
 #[test]
@@ -262,7 +265,7 @@ fn generate_utf8_string() {
     0x00, 0x01, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
   ];
 
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }
 
 #[test]
@@ -279,7 +282,7 @@ fn generate_utf8_string_pair() {
     0x00, 0x01, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111,
     111, 32, 98, 97, 114,
   ];
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }
 
 #[test]
@@ -323,5 +326,5 @@ fn generate_all() {
   );
 
   let expected = all_data();
-  assert_eq!(property.generate(), expected);
+  assert_eq!(property.generate().unwrap(), expected);
 }

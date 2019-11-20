@@ -1,5 +1,6 @@
 use crate::build_enum;
-use crate::data_type::DataType;
+use crate::DataType;
+use crate::Error;
 use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io;
@@ -34,78 +35,78 @@ build_enum!(Identifier {
   SharedSubscriptionAvailable = 0x2a
 });
 
-/**
- * 2.2.2.2 Property
- * https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901027
- * A Property consists of an Identifier which defines its usage and data type,
- * followed by a value. The Identifier is encoded as a Variable Byte Integer.
- * A Control Packet which contains an Identifier which is not valid for its
- * packet type, or contains a value not of the specified data type, is a
- * Malformed Packet. If received, use a CONNACK or DISCONNECT packet with
- * Reason Code 0x81 (Malformed Packet). There is no significance in the order
- * of Properties with different Identifiers.
- */
+/// A Property consists of an Identifier which defines its usage and data type,
+/// followed by a value.
+///
+/// # [2.2.2.2 Property](https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html#_Toc3901027)
+///
+/// A Property consists of an Identifier which defines its usage and data type,
+/// followed by a value. The Identifier is encoded as a Variable Byte Integer.
+/// A Control Packet which contains an Identifier which is not valid for its
+/// packet type, or contains a value not of the specified data type, is a
+/// Malformed Packet. If received, use a CONNACK or DISCONNECT packet with
+/// Reason Code 0x81 (Malformed Packet). There is no significance in the order
+/// of Properties with different Identifiers.
 pub struct Property {
   pub values: BTreeMap<Identifier, DataType>,
 }
 
 impl Property {
-  /**
-   * Parse property values from a reader into DataType variants.
-   */
-  pub fn parse<R>(mut reader: R) -> Self
-  where
-    R: io::Read,
-  {
-    use Identifier::*;
-    let length = DataType::parse_two_byte_int(&mut reader);
+  /// Parse property identifiers and values from a reader.
+  pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
+    let length = DataType::parse_two_byte_int(reader)?;
     let mut properties = BTreeMap::new();
 
     for _i in 0..length.into() {
-      let mut id_buffer = [0; 1];
-
-      reader
-        .read(&mut id_buffer)
-        .expect("Unable to read property data.");
-
-      let identifier = Identifier::from(id_buffer[0]);
-
-      let parsed = match identifier {
-        PayloadFormatIndicator
-        | RequestProblemInformation
-        | RequestResponseInformation
-        | MaximumQos
-        | RetainAvailable
-        | WildcardSubscriptionAvailable
-        | SubscriptionIdentifierAvailable
-        | SharedSubscriptionAvailable => DataType::parse_byte(&mut reader),
-        ServerKeepAlive | ReceiveMaximum | TopicAliasMaximum | TopicAlias => {
-          DataType::parse_two_byte_int(&mut reader)
-        }
-        MessageExpiryInterval | SessionExpiryInterval | WillDelayInterval | MaximumPacketSize => {
-          DataType::parse_four_byte_int(&mut reader)
-        }
-        SubscriptionIdentifier => DataType::parse_variable_byte_int(&mut reader),
-        UserProperty => DataType::parse_utf8_string_pair(&mut reader),
-        CorrelationData | AuthenticationData => DataType::parse_binary_data(&mut reader),
-        ContentType
-        | ResponseTopic
-        | AssignedClientIdentifier
-        | AuthenticationMethod
-        | ResponseInformation
-        | ServerReference
-        | ReasonString => DataType::parse_utf8_string(&mut reader),
-      };
-      properties.insert(identifier, parsed);
+      let identifier = Self::parse_identifier(reader)?;
+      let data_type = Self::parse_type(&identifier, reader)?;
+      properties.insert(identifier, data_type);
     }
 
-    return Self { values: properties };
+    return Ok(Self { values: properties });
   }
 
-  /**
-   * Convert Property values into a byte array
-   */
-  pub fn generate(&self) -> Vec<u8> {
+  /// Parse Identifier variant from reader.
+  fn parse_identifier<R: io::Read>(reader: &mut R) -> Result<Identifier, Error> {
+    let mut id_buffer = [0; 1];
+    reader.read(&mut id_buffer)?;
+    return Ok(Identifier::try_from(id_buffer[0])?);
+  }
+
+  /// Parse property values from a reader into DataType variants.
+  fn parse_type<R: io::Read>(identifier: &Identifier, reader: &mut R) -> Result<DataType, Error> {
+    use Identifier::*;
+
+    return match identifier {
+      PayloadFormatIndicator
+      | RequestProblemInformation
+      | RequestResponseInformation
+      | MaximumQos
+      | RetainAvailable
+      | WildcardSubscriptionAvailable
+      | SubscriptionIdentifierAvailable
+      | SharedSubscriptionAvailable => DataType::parse_byte(reader),
+      ServerKeepAlive | ReceiveMaximum | TopicAliasMaximum | TopicAlias => {
+        DataType::parse_two_byte_int(reader)
+      }
+      MessageExpiryInterval | SessionExpiryInterval | WillDelayInterval | MaximumPacketSize => {
+        DataType::parse_four_byte_int(reader)
+      }
+      SubscriptionIdentifier => DataType::parse_variable_byte_int(reader),
+      UserProperty => DataType::parse_utf8_string_pair(reader),
+      CorrelationData | AuthenticationData => DataType::parse_binary_data(reader),
+      ContentType
+      | ResponseTopic
+      | AssignedClientIdentifier
+      | AuthenticationMethod
+      | ResponseInformation
+      | ServerReference
+      | ReasonString => DataType::parse_utf8_string(reader),
+    };
+  }
+
+  /// Convert Property values into a byte vector.
+  pub fn generate(&self) -> Result<Vec<u8>, Error> {
     // we need to fit the usize into a u16, so we can grab the first two bytes
     let length = u16::try_from(self.values.len() & 0xFFFF)
       .unwrap()
@@ -120,9 +121,9 @@ impl Property {
     for (key, value) in self.values.iter() {
       let id: u8 = u8::from(*key);
       bytes.push(vec![id]);
-      bytes.push(value.into_bytes());
+      bytes.push(value.into_bytes()?);
     }
 
-    return bytes.concat();
+    return Ok(bytes.concat());
   }
 }
