@@ -70,7 +70,7 @@ impl Property {
   fn parse_identifier<R: io::Read>(reader: &mut R) -> Result<Identifier, Error> {
     let mut id_buffer = [0; 1];
     reader.read(&mut id_buffer)?;
-    return Ok(Identifier::from(id_buffer[0]));
+    return Ok(Identifier::try_from(id_buffer[0])?);
   }
 
   /// Parse property values from a reader into DataType variants.

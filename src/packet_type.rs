@@ -1,6 +1,7 @@
 use crate::build_enum;
 use crate::DataType;
 use crate::Error;
+use std::convert::TryFrom;
 use std::io;
 
 build_enum!(
@@ -33,6 +34,7 @@ impl PacketType {
   /// # Examples
   /// ```rust
   /// use mqtt_packet::PacketType;
+  /// use mqtt_packet::Error;
   /// use std::io;
   ///
   /// let bytes: Vec<u8> = vec![0x10];
@@ -42,24 +44,20 @@ impl PacketType {
   /// assert_eq!(packet_type, PacketType::CONNECT);
   /// ```
   ///
-  /// # Panics
+  /// Error:
   ///
-  /// This
+  /// ```rust
+  /// let err_bytes: Vec<u8> = vec![0x00];
+  /// let mut err_reader = io::BufReader::new(&err_bytes[..]);
   ///
-  /// ```should_panic
-  /// use mqtt_packet::PacketType;
-  /// use std::io;
-  ///
-  /// let bytes: Vec<u8> = vec![0x00];
-  /// let mut reader = io::BufReader::new(&bytes[..]);
-  ///
-  /// PacketType::new(&mut reader);
+  /// let err = PacketType::new(&mut err_reader).unwrap_err();
+  /// assert_eq!(err, Error::GenerateError)
   /// ```
   pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
     let byte = DataType::parse_byte(reader)?;
     if let DataType::Byte(value) = byte {
       let type_number: u8 = (value & 0xF0) >> 4;
-      return Ok(PacketType::from(type_number));
+      return Ok(PacketType::try_from(type_number)?);
     } else {
       return Err(Error::ParseError);
     }
