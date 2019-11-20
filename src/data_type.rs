@@ -12,6 +12,7 @@ pub enum VariableByte {
   Four(u32),
 }
 
+/// Data types defined by the MQTT v5 spec.
 #[derive(Debug, PartialEq)]
 pub enum DataType {
   Byte(u8),

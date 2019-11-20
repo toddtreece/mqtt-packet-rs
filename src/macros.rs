@@ -1,3 +1,6 @@
+/// Generates a public enum with the following traits implemented:
+/// * `From<T> for u8`
+/// * `TryFrom<u8> for T`
 #[macro_export]
 macro_rules! build_enum {
   (@accum (1, $name:ident { $([$($doc:expr,)*] $key:ident = $value:expr),* }))

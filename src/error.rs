@@ -4,6 +4,7 @@ use std::io::Error as IoError;
 use std::num::TryFromIntError;
 use std::string::FromUtf8Error;
 
+/// Error type used in all `Result<T, E>` return values.
 #[derive(Debug, PartialEq, Eq)]
 pub enum Error {
   ParseError,
