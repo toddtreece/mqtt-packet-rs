@@ -47,6 +47,10 @@ impl PacketType {
   /// Error:
   ///
   /// ```rust
+  /// use mqtt_packet::PacketType;
+  /// use mqtt_packet::Error;
+  /// use std::io;
+  ///
   /// let err_bytes: Vec<u8> = vec![0x00];
   /// let mut err_reader = io::BufReader::new(&err_bytes[..]);
   ///
