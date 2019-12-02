@@ -3,19 +3,13 @@
 /// * `TryFrom<u8> for T`
 #[macro_export]
 macro_rules! build_enum {
-  (@accum (1, $name:ident { $([$($doc:expr,)*] $key:ident = $value:expr),* }))
-    => {
+  ($name:ident {
+      $($key:ident = $value:expr),*
+  }) => {
     #[repr(u8)]
     #[derive(Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy)]
     pub enum $name {
-      $(
-        /// # Examples
-        /// ```rust
-        /// use std::convert::TryFrom;
-        $(#[doc=$doc])*
-        /// ```
-        $key = $value,
-      )*
+      $($key = $value,)*
     }
 
     impl From<$name> for u8 {
@@ -35,21 +29,19 @@ macro_rules! build_enum {
             };
         }
     }
-  };
 
-  ($name:ident {
-      $($key:ident = $value:expr),*
-  }) => {
-    build_enum!(@accum (1, $name {
-        $(
-          [
-            concat!("use mqtt_packet::", stringify!($name), ";"),
-            concat!("let id = ", stringify!($name), "::", stringify!($key), ";"),
-            concat!("assert_eq!(u8::from(id), ", stringify!($value), ");"),
-            concat!("assert_eq!(", stringify!($name), "::try_from(", stringify!($value), ").unwrap(), id);"),
-          ]
-          $key = $value),*
-      })
-    );
+    #[cfg(test)]
+    mod enum_tests {
+      use crate::$name;
+      use std::convert::TryFrom;
+      $(
+        #[test]
+        fn $key() {
+          let id = $name::$key;
+          assert_eq!(u8::from(id), $value);
+          assert_eq!($name::try_from($value).unwrap(), id);
+        }
+      )*
+    }
   };
 }
