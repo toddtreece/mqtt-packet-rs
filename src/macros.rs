@@ -32,7 +32,7 @@ macro_rules! build_enum {
 
     #[cfg(test)]
     mod enum_tests {
-      use crate::$name;
+      use super::$name;
       use std::convert::TryFrom;
       $(
         #[test]

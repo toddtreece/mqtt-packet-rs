@@ -67,3 +67,32 @@ impl PacketType {
     }
   }
 }
+
+mod tests {
+  use std::io;
+
+  #[test]
+  fn connect() {
+    let bytes: Vec<u8> = vec![0x10];
+    let mut reader = io::BufReader::new(&bytes[..]);
+    let packet_type = super::PacketType::new(&mut reader);
+    assert_eq!(packet_type.unwrap(), super::PacketType::CONNECT);
+  }
+
+  #[test]
+  fn auth() {
+    let bytes: Vec<u8> = vec![0xF0];
+    let mut reader = io::BufReader::new(&bytes[..]);
+    let packet_type = super::PacketType::new(&mut reader);
+    assert_eq!(packet_type.unwrap(), super::PacketType::AUTH);
+  }
+
+  #[test]
+  fn err() {
+    let err_bytes: Vec<u8> = vec![0x00];
+    let mut err_reader = io::BufReader::new(&err_bytes[..]);
+
+    let err = super::PacketType::new(&mut err_reader).unwrap_err();
+    assert_eq!(err, crate::Error::GenerateError)
+  }
+}
