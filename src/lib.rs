@@ -2,14 +2,12 @@
 //!
 //! [mqtt]: https://docs.oasis-open.org/mqtt/mqtt/v5.0/os/mqtt-v5.0-os.html
 
-mod config;
 mod data_type;
 mod error;
 mod macros;
 mod packet_type;
 mod property;
 
-pub use config::Config;
 pub use data_type::{DataType, VariableByte};
 pub use error::Error;
 pub use packet_type::PacketType;

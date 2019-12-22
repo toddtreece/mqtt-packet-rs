@@ -36,6 +36,7 @@ macro_rules! build_enum {
       use std::convert::TryFrom;
       $(
         #[test]
+        #[allow(non_snake_case)]
         fn $key() {
           let id = $name::$key;
           assert_eq!(u8::from(id), $value);

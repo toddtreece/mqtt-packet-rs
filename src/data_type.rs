@@ -299,6 +299,19 @@ impl DataType {
   /// ```rust
   /// use mqtt_packet::DataType;
   /// use std::io;
+  ///
+  /// let data: Vec<u8> = vec![
+  ///   0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111, 111, 32, 98, 97,
+  ///   114, 1, 1, 1, 1,
+  /// ];
+
+  /// let mut reader = io::BufReader::new(&data[..]);
+  /// let result = DataType::parse_utf8_string_pair(&mut reader).unwrap();
+
+  /// assert_eq!(
+  ///   result,
+  ///   DataType::Utf8StringPair(String::from("hello world"), String::from("foo bar"))
+  /// );
   /// ```
   pub fn parse_utf8_string_pair<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
     let str_one = Self::parse_string(reader)?;
@@ -416,6 +429,30 @@ mod tests {
   }
 
   #[test]
+  fn single_byte() {
+    let data: Vec<u8> = vec![0xFF, 0x02];
+    let mut reader = io::BufReader::new(&data[..]);
+    let byte = DataType::parse_byte(&mut reader).unwrap();
+    assert_eq!(byte, DataType::Byte(255));
+  }
+
+  #[test]
+  fn two_bytes() {
+    let data: Vec<u8> = vec![0x01, 0x02, 0x03];
+    let mut reader = io::BufReader::new(&data[..]);
+    let two = DataType::parse_two_byte_int(&mut reader).unwrap();
+    assert_eq!(two, DataType::TwoByteInteger(258));
+  }
+
+  #[test]
+  fn four_bytes() {
+    let data: Vec<u8> = vec![0x01, 0x02, 0x03, 0x04, 0x05];
+    let mut reader = io::BufReader::new(&data[..]);
+    let four = DataType::parse_four_byte_int(&mut reader).unwrap();
+    assert_eq!(four, DataType::FourByteInteger(16909060));
+  }
+
+  #[test]
   fn variable_byte_one() {
     let min: Vec<u8> = vec![0x00];
     let mut reader = io::BufReader::new(&min[..]);
@@ -497,6 +534,31 @@ mod tests {
     let mut reader = io::BufReader::new(&vari[..]);
     let vari_err = DataType::parse_variable_byte_int(&mut reader).unwrap_err();
     assert_eq!(vari_err, Error::ParseError);
+  }
+
+  #[test]
+  fn binary_data() {
+    let data: Vec<u8> = vec![
+      0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
+    ];
+    let mut reader = io::BufReader::new(&data[..]);
+    let result = DataType::parse_binary_data(&mut reader).unwrap();
+    let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09];
+    assert_eq!(result, DataType::BinaryData(expected));
+  }
+
+  #[test]
+  fn string() {
+    let data: Vec<u8> = vec![
+      0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 100, 100, 100,
+    ];
+
+    let mut reader = io::BufReader::new(&data[..]);
+    let result = DataType::parse_utf8_string(&mut reader).unwrap();
+    assert_eq!(
+      result,
+      DataType::Utf8EncodedString(String::from("hello world"))
+    );
   }
 
   #[test]
