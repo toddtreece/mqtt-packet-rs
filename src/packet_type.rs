@@ -55,13 +55,13 @@ impl PacketType {
   /// let mut err_reader = io::BufReader::new(&err_bytes[..]);
   ///
   /// let err = PacketType::new(&mut err_reader).unwrap_err();
-  /// assert_eq!(err, Error::GenerateError)
+  /// assert_eq!(err, Error::ParseError)
   /// ```
   pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-    let byte = DataType::parse_byte(reader)?;
-    if let DataType::Byte(value) = byte {
+    let byte = DataType::parse_byte(reader);
+    if let Ok(DataType::Byte(value)) = byte {
       let type_number: u8 = (value & 0xF0) >> 4;
-      return Ok(PacketType::try_from(type_number)?);
+      return PacketType::try_from(type_number);
     } else {
       return Err(Error::ParseError);
     }
@@ -89,11 +89,20 @@ mod tests {
   }
 
   #[test]
-  fn err() {
+  fn err_value() {
     let err_bytes: Vec<u8> = vec![0x00];
     let mut err_reader = io::BufReader::new(&err_bytes[..]);
 
     let err = super::PacketType::new(&mut err_reader).unwrap_err();
-    assert_eq!(err, crate::Error::GenerateError)
+    assert_eq!(err, crate::Error::ParseError)
+  }
+
+  #[test]
+  fn err_read() {
+    let err_bytes: Vec<u8> = vec![];
+    let mut err_reader = io::BufReader::new(&err_bytes[..]);
+
+    let err = super::PacketType::new(&mut err_reader).unwrap_err();
+    assert_eq!(err, crate::Error::ParseError)
   }
 }

@@ -25,7 +25,7 @@ macro_rules! build_enum {
         fn try_from(v: u8) -> Result<Self, crate::Error> {
             return match v {
               $($value => Ok($name::$key),)*
-              _ => Err(crate::Error::GenerateError)
+              _ => Err(crate::Error::ParseError)
             };
         }
     }
