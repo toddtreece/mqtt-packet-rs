@@ -59,7 +59,7 @@ impl Property {
 
     for _i in 0..length.into() {
       let identifier = Self::parse_identifier(reader)?;
-      let data_type = Self::parse_type(&identifier, reader)?;
+      let data_type = Self::parse_type(identifier, reader)?;
       properties.insert(identifier, data_type);
     }
 
@@ -69,12 +69,12 @@ impl Property {
   /// Parse Identifier variant from reader.
   fn parse_identifier<R: io::Read>(reader: &mut R) -> Result<Identifier, Error> {
     let mut id_buffer = [0; 1];
-    reader.read(&mut id_buffer)?;
+    reader.read_exact(&mut id_buffer)?;
     Ok(Identifier::try_from(id_buffer[0])?)
   }
 
   /// Parse property values from a reader into DataType variants.
-  fn parse_type<R: io::Read>(identifier: &Identifier, reader: &mut R) -> Result<DataType, Error> {
+  fn parse_type<R: io::Read>(identifier: Identifier, reader: &mut R) -> Result<DataType, Error> {
     use Identifier::*;
 
     match identifier {
@@ -121,7 +121,7 @@ impl Property {
     for (key, value) in self.values.iter() {
       let id: u8 = u8::from(*key);
       bytes.push(vec![id]);
-      bytes.push(value.into_bytes()?);
+      bytes.push(value.to_vec()?);
     }
 
     Ok(bytes.concat())
