@@ -63,21 +63,21 @@ impl Property {
       properties.insert(identifier, data_type);
     }
 
-    return Ok(Self { values: properties });
+    Ok(Self { values: properties })
   }
 
   /// Parse Identifier variant from reader.
   fn parse_identifier<R: io::Read>(reader: &mut R) -> Result<Identifier, Error> {
     let mut id_buffer = [0; 1];
     reader.read(&mut id_buffer)?;
-    return Ok(Identifier::try_from(id_buffer[0])?);
+    Ok(Identifier::try_from(id_buffer[0])?)
   }
 
   /// Parse property values from a reader into DataType variants.
   fn parse_type<R: io::Read>(identifier: &Identifier, reader: &mut R) -> Result<DataType, Error> {
     use Identifier::*;
 
-    return match identifier {
+    match identifier {
       PayloadFormatIndicator
       | RequestProblemInformation
       | RequestResponseInformation
@@ -102,7 +102,7 @@ impl Property {
       | ResponseInformation
       | ServerReference
       | ReasonString => DataType::parse_utf8_string(reader),
-    };
+    }
   }
 
   /// Convert Property values into a byte vector.
@@ -124,6 +124,6 @@ impl Property {
       bytes.push(value.into_bytes()?);
     }
 
-    return Ok(bytes.concat());
+    Ok(bytes.concat())
   }
 }

@@ -61,9 +61,9 @@ impl PacketType {
     let byte = DataType::parse_byte(reader);
     if let Ok(DataType::Byte(value)) = byte {
       let type_number: u8 = (value & 0xF0) >> 4;
-      return PacketType::try_from(type_number);
+      PacketType::try_from(type_number)
     } else {
-      return Err(Error::ParseError);
+      Err(Error::ParseError)
     }
   }
 }

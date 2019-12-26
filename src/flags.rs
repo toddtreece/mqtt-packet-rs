@@ -29,7 +29,7 @@ impl Flags {
       (header & 0x08) == 0x08,
     ));
 
-    return match packet_type {
+    match packet_type {
       PacketType::PUBLISH => {
         let qos = (header & 0x06) >> 1;
 
@@ -55,13 +55,13 @@ impl Flags {
       // for details about handling errors.
       PacketType::PUBREL | PacketType::SUBSCRIBE | PacketType::UNSUBSCRIBE => {
         if (header & 0x0F) == 0x02 {
-          return Ok(generic_flags);
+          Ok(generic_flags)
         } else {
-          return Err(Error::MalformdedPacket);
+          Err(Error::MalformdedPacket)
         }
       }
       _ => Ok(generic_flags),
-    };
+    }
   }
 }
 
