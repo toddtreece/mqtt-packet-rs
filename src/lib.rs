@@ -4,11 +4,13 @@
 
 mod data_type;
 mod error;
+mod flags;
 mod macros;
 mod packet_type;
 mod property;
 
 pub use data_type::{DataType, VariableByte};
 pub use error::Error;
+pub use flags::{Flags, GenericFlags, PublishFlags};
 pub use packet_type::PacketType;
 pub use property::{Identifier, Property};
