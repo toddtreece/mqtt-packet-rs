@@ -36,7 +36,7 @@ fn parse_four_byte() {
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
   match property.values.get(&MessageExpiryInterval) {
-    Some(value) => assert_eq!(value, &DataType::FourByteInteger(33752069)),
+    Some(value) => assert_eq!(value, &DataType::FourByteInteger(33_752_069)),
     None => panic!("Not a valid property"),
   }
 }
@@ -49,7 +49,7 @@ fn parse_variable_byte() {
   match property.values.get(&SubscriptionIdentifier) {
     Some(value) => assert_eq!(
       value,
-      &DataType::VariableByteInteger(VariableByte::Four(268435455))
+      &DataType::VariableByteInteger(VariableByte::Four(268_435_455))
     ),
     None => panic!("Not a valid property"),
   }
@@ -127,7 +127,7 @@ fn all_data() -> Vec<u8> {
   // these are sorted by the identifier keys used in
   // parse_all and generate_all. PartialOrd sorts enum
   // variants in the order they are declared.
-  return [
+  [
     &length[..],
     &byte[..],
     &four_byte[..],
@@ -137,7 +137,7 @@ fn all_data() -> Vec<u8> {
     &string[..],
     &string_pair[..],
   ]
-  .concat();
+  .concat()
 }
 
 #[test]
@@ -150,10 +150,10 @@ fn parse_all() {
     match identifier {
       PayloadFormatIndicator => assert_eq!(value, &DataType::Byte(255)),
       ServerKeepAlive => assert_eq!(value, &DataType::TwoByteInteger(515)),
-      MessageExpiryInterval => assert_eq!(value, &DataType::FourByteInteger(33752069)),
+      MessageExpiryInterval => assert_eq!(value, &DataType::FourByteInteger(33_752_069)),
       SubscriptionIdentifier => assert_eq!(
         value,
-        &DataType::VariableByteInteger(VariableByte::Four(268435455))
+        &DataType::VariableByteInteger(VariableByte::Four(268_435_455))
       ),
       CorrelationData => assert_eq!(
         value,
@@ -212,7 +212,7 @@ fn generate_four_byte() {
 
   property
     .values
-    .insert(MessageExpiryInterval, DataType::FourByteInteger(33752069));
+    .insert(MessageExpiryInterval, DataType::FourByteInteger(33_752_069));
 
   let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
   assert_eq!(property.generate().unwrap(), expected);
@@ -226,7 +226,7 @@ fn generate_variable_byte() {
 
   property.values.insert(
     SubscriptionIdentifier,
-    DataType::VariableByteInteger(VariableByte::Four(268435455)),
+    DataType::VariableByteInteger(VariableByte::Four(268_435_455)),
   );
 
   let expected: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
@@ -301,11 +301,11 @@ fn generate_all() {
 
   property
     .values
-    .insert(MessageExpiryInterval, DataType::FourByteInteger(33752069));
+    .insert(MessageExpiryInterval, DataType::FourByteInteger(33_752_069));
 
   property.values.insert(
     SubscriptionIdentifier,
-    DataType::VariableByteInteger(VariableByte::Four(268435455)),
+    DataType::VariableByteInteger(VariableByte::Four(268_435_455)),
   );
 
   property.values.insert(
