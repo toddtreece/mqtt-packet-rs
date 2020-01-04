@@ -49,11 +49,11 @@ impl Flags {
 
         Ok(flags)
       }
-      // Where a flag bit is marked as “Reserved”, it is reserved for future
-      // use and MUST be set to the value listed [MQTT-2.1.3-1]. If invalid
-      // flags are received it is a Malformed Packet. Refer to section 4.13
-      // for details about handling errors.
       PacketType::PUBREL | PacketType::SUBSCRIBE | PacketType::UNSUBSCRIBE => {
+        // Where a flag bit is marked as “Reserved”, it is reserved for future
+        // use and MUST be set to the value listed [MQTT-2.1.3-1]. If invalid
+        // flags are received it is a Malformed Packet. Refer to section 4.13
+        // for details about handling errors.
         if (header & 0x0F) == 0x02 {
           Ok(generic_flags)
         } else {
@@ -63,11 +63,43 @@ impl Flags {
       _ => Ok(generic_flags),
     }
   }
+
+  /// Convert Flag variants into u8.
+  pub fn to_u8(&self) -> Result<u8, Error> {
+    let mut flag: u8 = 0x00;
+
+    match self {
+      Flags::Publish(value) => {
+        flag |= value.qos << 1;
+        if value.retain {
+          flag |= 0x01
+        }
+        if value.dup {
+          flag |= 0x08
+        }
+      }
+      Flags::Generic(value) => {
+        if value.0 {
+          flag |= 0x01;
+        }
+        if value.1 {
+          flag |= 0x02;
+        }
+        if value.2 {
+          flag |= 0x04;
+        }
+        if value.3 {
+          flag |= 0x08;
+        }
+      }
+    };
+
+    Ok(flag)
+  }
 }
 
 #[cfg(test)]
 mod tests {
-
   #[test]
   fn publish() {
     let fixed_header: u8 = 0x3D;
@@ -144,5 +176,49 @@ mod tests {
     let fixed_header: u8 = 0xAF;
     let flag_type = super::Flags::new(fixed_header);
     assert_eq!(flag_type.unwrap_err(), crate::Error::MalformdedPacket);
+  }
+
+  #[test]
+  fn publish_truthy_to_u8() {
+    let flag_type = super::Flags::Publish(super::PublishFlags {
+      retain: true,
+      qos: 2,
+      dup: true,
+    });
+    assert_eq!(flag_type.to_u8().unwrap(), 0x0D);
+  }
+
+  #[test]
+  fn publish_falsy_to_u8() {
+    let flag_type = super::Flags::Publish(super::PublishFlags {
+      retain: false,
+      qos: 1,
+      dup: false,
+    });
+    assert_eq!(flag_type.to_u8().unwrap(), 0x02);
+  }
+
+  #[test]
+  fn generic_one_to_u8() {
+    let flag_type = super::Flags::Generic(super::GenericFlags(true, false, false, false));
+    assert_eq!(flag_type.to_u8().unwrap(), 0x01);
+  }
+
+  #[test]
+  fn generic_two_to_u8() {
+    let flag_type = super::Flags::Generic(super::GenericFlags(true, true, false, false));
+    assert_eq!(flag_type.to_u8().unwrap(), 0x03);
+  }
+
+  #[test]
+  fn generic_three_to_u8() {
+    let flag_type = super::Flags::Generic(super::GenericFlags(true, true, true, false));
+    assert_eq!(flag_type.to_u8().unwrap(), 0x07);
+  }
+
+  #[test]
+  fn generic_four_to_u8() {
+    let flag_type = super::Flags::Generic(super::GenericFlags(true, true, true, true));
+    assert_eq!(flag_type.to_u8().unwrap(), 0x0F);
   }
 }
