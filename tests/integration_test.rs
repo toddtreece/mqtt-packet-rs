@@ -42,7 +42,49 @@ fn parse_four_byte() {
 }
 
 #[test]
-fn parse_variable_byte() {
+fn parse_variable_byte_one() {
+  let data: Vec<u8> = vec![0x00, 0x02, 0x0b, 0x7F];
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
+  match property.values.get(&SubscriptionIdentifier) {
+    Some(value) => assert_eq!(
+      value,
+      &DataType::VariableByteInteger(VariableByte::One(127))
+    ),
+    None => panic!("Not a valid property"),
+  }
+}
+
+#[test]
+fn parse_variable_byte_two() {
+  let data: Vec<u8> = vec![0x00, 0x03, 0x0b, 0xFF, 0x7F];
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
+  match property.values.get(&SubscriptionIdentifier) {
+    Some(value) => assert_eq!(
+      value,
+      &DataType::VariableByteInteger(VariableByte::Two(16383))
+    ),
+    None => panic!("Not a valid property"),
+  }
+}
+
+#[test]
+fn parse_variable_byte_three() {
+  let data: Vec<u8> = vec![0x00, 0x04, 0x0b, 0xFF, 0xFF, 0x7F];
+  let mut reader = io::BufReader::new(&data[..]);
+  let property = Property::new(&mut reader).unwrap();
+  match property.values.get(&SubscriptionIdentifier) {
+    Some(value) => assert_eq!(
+      value,
+      &DataType::VariableByteInteger(VariableByte::Three(2_097_151))
+    ),
+    None => panic!("Not a valid property"),
+  }
+}
+
+#[test]
+fn parse_variable_byte_four() {
   let data: Vec<u8> = vec![0x00, 0x05, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
