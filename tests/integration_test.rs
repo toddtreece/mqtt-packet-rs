@@ -5,7 +5,7 @@ use std::io;
 
 #[test]
 fn parse_byte() {
-  let data: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
+  let data: Vec<u8> = vec![0x00, 0x04, 0x01, 0xFF, 0x24, 0x02];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
   match property.values.get(&PayloadFormatIndicator) {
@@ -21,7 +21,7 @@ fn parse_byte() {
 
 #[test]
 fn parse_two_byte() {
-  let data: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
+  let data: Vec<u8> = vec![0x00, 0x03, 0x13, 0x02, 0x03];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
   match property.values.get(&ServerKeepAlive) {
@@ -32,7 +32,7 @@ fn parse_two_byte() {
 
 #[test]
 fn parse_four_byte() {
-  let data: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
+  let data: Vec<u8> = vec![0x00, 0x05, 0x02, 0x02, 0x03, 0x04, 0x05];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
   match property.values.get(&MessageExpiryInterval) {
@@ -43,7 +43,7 @@ fn parse_four_byte() {
 
 #[test]
 fn parse_variable_byte() {
-  let data: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+  let data: Vec<u8> = vec![0x00, 0x05, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
   match property.values.get(&SubscriptionIdentifier) {
@@ -58,7 +58,7 @@ fn parse_variable_byte() {
 #[test]
 fn parse_binary_data() {
   let data: Vec<u8> = vec![
-    0x00, 0x01, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
+    0, 13, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
   ];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
@@ -73,7 +73,7 @@ fn parse_binary_data() {
 #[test]
 fn parse_utf8_string() {
   let data: Vec<u8> = vec![
-    0x00, 0x01, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 100, 100, 100,
+    0x00, 14, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 100, 100, 100,
   ];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
@@ -89,8 +89,8 @@ fn parse_utf8_string() {
 #[test]
 fn parse_utf8_string_pair() {
   let data: Vec<u8> = vec![
-    0x00, 0x01, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111,
-    111, 32, 98, 97, 114, 1, 1, 1, 1,
+    0, 23, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111, 111,
+    32, 98, 97, 114, 1, 1, 1, 1,
   ];
   let mut reader = io::BufReader::new(&data[..]);
   let property = Property::new(&mut reader).unwrap();
@@ -104,7 +104,7 @@ fn parse_utf8_string_pair() {
 }
 
 fn all_data() -> Vec<u8> {
-  let length: Vec<u8> = vec![0x00, 0x07];
+  let length: Vec<u8> = vec![0x00, 0x41];
 
   let byte: Vec<u8> = vec![0x01, 0xFF];
   let two_byte: Vec<u8> = vec![0x13, 0x02, 0x03];
@@ -186,7 +186,7 @@ fn generate_byte() {
 
   property.values.insert(MaximumQos, DataType::Byte(2));
 
-  let expected: Vec<u8> = vec![0x00, 0x02, 0x01, 0xFF, 0x24, 0x02];
+  let expected: Vec<u8> = vec![0x00, 0x04, 0x01, 0xFF, 0x24, 0x02];
   assert_eq!(property.generate().unwrap(), expected);
 }
 
@@ -200,7 +200,7 @@ fn generate_two_byte() {
     .values
     .insert(ServerKeepAlive, DataType::TwoByteInteger(515));
 
-  let expected: Vec<u8> = vec![0x00, 0x01, 0x13, 0x02, 0x03];
+  let expected: Vec<u8> = vec![0x00, 0x03, 0x13, 0x02, 0x03];
   assert_eq!(property.generate().unwrap(), expected);
 }
 
@@ -214,7 +214,7 @@ fn generate_four_byte() {
     .values
     .insert(MessageExpiryInterval, DataType::FourByteInteger(33_752_069));
 
-  let expected: Vec<u8> = vec![0x00, 0x01, 0x02, 0x02, 0x03, 0x04, 0x05];
+  let expected: Vec<u8> = vec![0x00, 0x05, 0x02, 0x02, 0x03, 0x04, 0x05];
   assert_eq!(property.generate().unwrap(), expected);
 }
 
@@ -229,7 +229,7 @@ fn generate_variable_byte() {
     DataType::VariableByteInteger(VariableByte::Four(268_435_455)),
   );
 
-  let expected: Vec<u8> = vec![0x00, 0x01, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
+  let expected: Vec<u8> = vec![0x00, 0x05, 0x0b, 0xFF, 0xFF, 0xFF, 0x7F];
   assert_eq!(property.generate().unwrap(), expected);
 }
 
@@ -245,7 +245,7 @@ fn generate_binary_data() {
     .insert(CorrelationData, DataType::BinaryData(data));
 
   let expected: Vec<u8> = vec![
-    0x00, 0x01, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+    0x00, 0x0D, 0x09, 0, 10, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
   ];
   assert_eq!(property.generate().unwrap(), expected);
 }
@@ -262,7 +262,7 @@ fn generate_utf8_string() {
   );
 
   let expected: Vec<u8> = vec![
-    0x00, 0x01, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
+    0x00, 0x0E, 0x1c, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
   ];
 
   assert_eq!(property.generate().unwrap(), expected);
@@ -279,7 +279,7 @@ fn generate_utf8_string_pair() {
   );
 
   let expected: Vec<u8> = vec![
-    0x00, 0x01, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111,
+    0x00, 0x17, 0x26, 0, 11, 104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 0, 7, 102, 111,
     111, 32, 98, 97, 114,
   ];
   assert_eq!(property.generate().unwrap(), expected);
