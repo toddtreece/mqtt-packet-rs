@@ -9,7 +9,7 @@ use std::string::FromUtf8Error;
 pub enum Error {
   ParseError,
   GenerateError,
-  MalformdedPacket,
+  MalformedPacket,
 }
 
 impl StdError for Error {
@@ -17,7 +17,7 @@ impl StdError for Error {
     match *self {
       Error::ParseError => "Unable to parse type",
       Error::GenerateError => "Unable to generate data",
-      Error::MalformdedPacket => "Malformed packet",
+      Error::MalformedPacket => "Malformed packet",
     }
   }
 }
@@ -27,7 +27,7 @@ impl fmt::Display for Error {
     match *self {
       Error::ParseError => f.write_str("ParseError"),
       Error::GenerateError => f.write_str("GenerateError"),
-      Error::MalformdedPacket => f.write_str("MalformedPacket"),
+      Error::MalformedPacket => f.write_str("MalformedPacket"),
     }
   }
 }
