@@ -54,12 +54,23 @@ pub struct Property {
 impl Property {
   /// Parse property identifiers and values from a reader.
   pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-    let length = DataType::parse_two_byte_int(reader)?;
+    let mut length: u16 = DataType::parse_two_byte_int(reader)?.into();
     let mut properties = BTreeMap::new();
 
-    for _i in 0..length.into() {
+    while length > 0 {
       let identifier = Self::parse_identifier(reader)?;
+      length -= 1;
+
       let data_type = Self::parse_type(identifier, reader)?;
+      let data_length = data_type.byte_len()?;
+
+      // something is wrong if the total length of properties doesn't match
+      if data_length > length {
+        return Err(Error::MalformedPacket);
+      } else {
+        length -= data_type.byte_len()?;
+      }
+
       properties.insert(identifier, data_type);
     }
 
@@ -107,23 +118,26 @@ impl Property {
 
   /// Convert Property values into a byte vector.
   pub fn generate(&self) -> Result<Vec<u8>, Error> {
-    // we need to fit the usize into a u16, so we can grab the first two bytes
-    let length = u16::try_from(self.values.len() & 0xFFFF)
-      .unwrap()
-      .to_be_bytes()
-      .to_vec();
-
     // create a vector to hold the generated data
-    let mut bytes = vec![];
-    bytes.push(length);
+    let mut props = vec![];
 
     // PartialOrd sorts enum variants in the order they are declared.
     for (key, value) in self.values.iter() {
       let id: u8 = u8::from(*key);
-      bytes.push(vec![id]);
-      bytes.push(value.to_vec()?);
+      props.push(vec![id]);
+      props.push(value.to_vec()?);
     }
 
-    Ok(bytes.concat())
+    let bytes = props.concat();
+
+    // we need to fit the usize into a u16, so we can grab the first two bytes
+    let length = u16::try_from(bytes.len() & 0xFFFF)
+      .unwrap()
+      .to_be_bytes()
+      .to_vec();
+
+    let result = vec![length, bytes];
+
+    Ok(result.concat())
   }
 }

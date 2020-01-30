@@ -323,7 +323,7 @@ impl DataType {
   /// Used by to_vec() for calculating length for strings, string pairs, and binary data.
   /// The length of arrays is limited to the range of 0 to 65,535 bytes. Because of that we
   /// need to convert usize to a two byte u8 array.
-  fn calculate_length(data: Vec<u8>) -> Result<Vec<u8>, Error> {
+  fn prepend_length(data: Vec<u8>) -> Result<Vec<u8>, Error> {
     if data.len() > 65535 {
       return Err(Error::GenerateError);
     }
@@ -386,6 +386,25 @@ impl DataType {
     Ok(bytes)
   }
 
+  pub fn byte_len(&self) -> Result<u16, Error> {
+    let len = match self {
+      Self::Byte(_value) => 1,
+      Self::TwoByteInteger(_value) => 2,
+      Self::FourByteInteger(_value) => 4,
+      Self::VariableByteInteger(t) => match t {
+        VariableByte::One(_value) => 1,
+        VariableByte::Two(_value) => 2,
+        VariableByte::Three(_value) => 3,
+        VariableByte::Four(_value) => 4,
+      },
+      Self::Utf8EncodedString(value) => value.as_bytes().len() + 2,
+      Self::BinaryData(value) => value.len() + 2,
+      Self::Utf8StringPair(one, two) => one.as_bytes().len() + two.as_bytes().len() + 4,
+    };
+
+    Ok(u16::try_from(len & 0xFFFF)?)
+  }
+
   /// Convert DataType variants into u8 vectors.
   pub fn to_vec(&self) -> Result<Vec<u8>, Error> {
     let bytes = match self {
@@ -393,11 +412,11 @@ impl DataType {
       Self::TwoByteInteger(value) => value.to_be_bytes().to_vec(),
       Self::FourByteInteger(value) => value.to_be_bytes().to_vec(),
       Self::VariableByteInteger(value) => Self::encode_variable_byte(value)?,
-      Self::Utf8EncodedString(value) => Self::calculate_length(value.as_bytes().to_vec())?,
-      Self::BinaryData(value) => Self::calculate_length(value.to_vec())?,
+      Self::Utf8EncodedString(value) => Self::prepend_length(value.as_bytes().to_vec())?,
+      Self::BinaryData(value) => Self::prepend_length(value.to_vec())?,
       Self::Utf8StringPair(one, two) => [
-        Self::calculate_length(one.as_bytes().to_vec())?,
-        Self::calculate_length(two.as_bytes().to_vec())?,
+        Self::prepend_length(one.as_bytes().to_vec())?,
+        Self::prepend_length(two.as_bytes().to_vec())?,
       ]
       .concat(),
     };

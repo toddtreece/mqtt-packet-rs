@@ -38,7 +38,7 @@ impl Flags {
         // bits set to 1 it is a Malformed Packet. Use DISCONNECT with Reason
         // Code 0x81 (Malformed Packet) as described in section 4.13.
         if qos > 2 {
-          return Err(Error::MalformdedPacket);
+          return Err(Error::MalformedPacket);
         }
 
         let flags = Self::Publish(PublishFlags {
@@ -57,7 +57,7 @@ impl Flags {
         if (header & 0x0F) == 0x02 {
           Ok(generic_flags)
         } else {
-          Err(Error::MalformdedPacket)
+          Err(Error::MalformedPacket)
         }
       }
       _ => Ok(generic_flags),
@@ -118,7 +118,7 @@ mod tests {
   fn publish_qos_error() {
     let fixed_header: u8 = 0x3F;
     let flag_type = super::Flags::new(fixed_header);
-    assert_eq!(flag_type.unwrap_err(), crate::Error::MalformdedPacket);
+    assert_eq!(flag_type.unwrap_err(), crate::Error::MalformedPacket);
   }
 
   #[test]
@@ -175,7 +175,7 @@ mod tests {
   fn reserved_error() {
     let fixed_header: u8 = 0xAF;
     let flag_type = super::Flags::new(fixed_header);
-    assert_eq!(flag_type.unwrap_err(), crate::Error::MalformdedPacket);
+    assert_eq!(flag_type.unwrap_err(), crate::Error::MalformedPacket);
   }
 
   #[test]
