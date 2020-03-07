@@ -2,7 +2,6 @@ use crate::build_enum;
 use crate::DataType;
 use crate::Error;
 use std::convert::TryFrom;
-use std::io;
 
 build_enum!(
   PacketType {
@@ -34,58 +33,71 @@ impl PacketType {
   /// # Examples
   /// ```rust
   /// use mqtt_packet::PacketType;
+  /// use mqtt_packet::DataType;
   /// use mqtt_packet::Error;
   /// use std::io;
   ///
   /// let bytes: Vec<u8> = vec![0x10];
   /// let mut reader = io::BufReader::new(&bytes[..]);
+  /// let byte = DataType::parse_byte(&mut reader).unwrap();
   ///
-  /// let packet_type = PacketType::new(&mut reader).unwrap();
+  /// let packet_type = PacketType::new(byte).unwrap();
   /// assert_eq!(packet_type, PacketType::CONNECT);
+  /// assert_eq!(packet_type.to_u8().unwrap(), 1);
   /// ```
   ///
   /// Error:
   ///
   /// ```rust
   /// use mqtt_packet::PacketType;
+  /// use mqtt_packet::DataType;
   /// use mqtt_packet::Error;
   /// use std::io;
   ///
-  /// let err_bytes: Vec<u8> = vec![0x00];
+  /// let err_bytes: Vec<u8> = vec![0x00, 0x01];
   /// let mut err_reader = io::BufReader::new(&err_bytes[..]);
+  /// let wrong_type = DataType::parse_byte(&mut err_reader).unwrap();
   ///
-  /// let err = PacketType::new(&mut err_reader).unwrap_err();
+  /// let err = PacketType::new(wrong_type).unwrap_err();
   /// assert_eq!(err, Error::ParseError)
   /// ```
-  pub fn new<R: io::Read>(reader: &mut R) -> Result<Self, Error> {
-    let byte = DataType::parse_byte(reader);
-    if let Ok(DataType::Byte(value)) = byte {
+  pub fn new(byte: DataType) -> Result<Self, Error> {
+    if let DataType::Byte(value) = byte {
       let type_number: u8 = (value & 0xF0) >> 4;
       PacketType::try_from(type_number)
     } else {
       Err(Error::ParseError)
     }
   }
+
+  pub fn to_u8(self) -> Result<u8, Error> {
+    Ok(u8::from(self))
+  }
 }
 
 #[cfg(test)]
 mod tests {
+  use crate::DataType;
   use std::io;
 
   #[test]
   fn connect() {
     let bytes: Vec<u8> = vec![0x10];
     let mut reader = io::BufReader::new(&bytes[..]);
-    let packet_type = super::PacketType::new(&mut reader);
-    assert_eq!(packet_type.unwrap(), super::PacketType::CONNECT);
+    let byte = DataType::parse_byte(&mut reader).unwrap();
+    let packet_type = super::PacketType::new(byte).unwrap();
+    assert_eq!(packet_type, super::PacketType::CONNECT);
+    assert_eq!(packet_type.to_u8().unwrap(), 1);
   }
 
   #[test]
   fn auth() {
     let bytes: Vec<u8> = vec![0xF0];
     let mut reader = io::BufReader::new(&bytes[..]);
-    let packet_type = super::PacketType::new(&mut reader);
-    assert_eq!(packet_type.unwrap(), super::PacketType::AUTH);
+    let byte = DataType::parse_byte(&mut reader).unwrap();
+    let packet_type = super::PacketType::new(byte).unwrap();
+    assert_eq!(packet_type, super::PacketType::AUTH);
+    assert_eq!(packet_type.to_u8().unwrap(), 15);
   }
 
   #[test]
@@ -93,16 +105,18 @@ mod tests {
     let err_bytes: Vec<u8> = vec![0x00];
     let mut err_reader = io::BufReader::new(&err_bytes[..]);
 
-    let err = super::PacketType::new(&mut err_reader).unwrap_err();
+    let byte = DataType::parse_byte(&mut err_reader).unwrap();
+    let err = super::PacketType::new(byte).unwrap_err();
     assert_eq!(err, crate::Error::ParseError)
   }
 
   #[test]
   fn err_read() {
-    let err_bytes: Vec<u8> = vec![];
+    let err_bytes: Vec<u8> = vec![0x00, 0x01];
     let mut err_reader = io::BufReader::new(&err_bytes[..]);
+    let byte = DataType::parse_byte(&mut err_reader).unwrap();
 
-    let err = super::PacketType::new(&mut err_reader).unwrap_err();
+    let err = super::PacketType::new(byte).unwrap_err();
     assert_eq!(err, crate::Error::ParseError)
   }
 }
