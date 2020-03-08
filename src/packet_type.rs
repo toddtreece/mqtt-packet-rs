@@ -28,7 +28,7 @@ build_enum!(
 /// Position: byte 1, bits 7-4.
 /// Represented as a 4-bit unsigned value.
 impl PacketType {
-  /// Parse property values from a reader into DataType variants.
+  /// Convert DataType::Byte into a PacketType.
   ///
   /// # Examples
   /// ```rust

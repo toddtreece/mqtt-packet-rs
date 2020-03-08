@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::convert::TryFrom;
 use std::io;
 
-build_enum!(Identifier {
+build_enum!(PropertyIdentifier {
   PayloadFormatIndicator = 0x01,
   MessageExpiryInterval = 0x02,
   ContentType = 0x03,
@@ -48,7 +48,7 @@ build_enum!(Identifier {
 /// Reason Code 0x81 (Malformed Packet). There is no significance in the order
 /// of Properties with different Identifiers.
 pub struct Property {
-  pub values: BTreeMap<Identifier, DataType>,
+  pub values: BTreeMap<PropertyIdentifier, DataType>,
 }
 
 impl Property {
@@ -78,15 +78,18 @@ impl Property {
   }
 
   /// Parse Identifier variant from reader.
-  fn parse_identifier<R: io::Read>(reader: &mut R) -> Result<Identifier, Error> {
+  fn parse_identifier<R: io::Read>(reader: &mut R) -> Result<PropertyIdentifier, Error> {
     let mut id_buffer = [0; 1];
     reader.read_exact(&mut id_buffer)?;
-    Ok(Identifier::try_from(id_buffer[0])?)
+    Ok(PropertyIdentifier::try_from(id_buffer[0])?)
   }
 
   /// Parse property values from a reader into DataType variants.
-  fn parse_type<R: io::Read>(identifier: Identifier, reader: &mut R) -> Result<DataType, Error> {
-    use Identifier::*;
+  fn parse_type<R: io::Read>(
+    identifier: PropertyIdentifier,
+    reader: &mut R,
+  ) -> Result<DataType, Error> {
+    use PropertyIdentifier::*;
 
     match identifier {
       PayloadFormatIndicator
