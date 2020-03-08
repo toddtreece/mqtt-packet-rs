@@ -5,49 +5,49 @@ use std::convert::TryFrom;
 
 build_enum!(
   ReasonCode {
-    SUCCESS = 0x00,
-    GRANTED_QOS_1 = 0x01,
-    GRANTED_QOS_2 = 0x02,
-    DISCONNECT_WITH_WILL_MESSAGE = 0x04,
-    NO_MATCHING_SUBSCRIBERS = 0x10,
-    NO_SUBSCRIPTION_EXISTED = 0x11,
-    CONTINUE_AUTHENTICATION = 0x18,
-    RE_AUTHENTICATE = 0x19,
-    UNSPECIFIED_ERROR = 0x80,
-    MALFORMED_PACKET = 0x81,
-    PROTOCOL_ERROR = 0x82,
-    IMPLEMENTATION_SPECIFIC_ERROR = 0x83,
-    UNSUPPORTED_PROTOCOL_VERSION = 0x84,
-    CLIENT_IDENTIFIER_NOT_VALID = 0x85,
-    BAD_USER_NAME_OR_PASSWORD = 0x86,
-    NOT_AUTHORIZED = 0x87,
-    SERVER_UNAVAILABLE = 0x88,
-    SERVER_BUSY = 0x89,
-    BANNED = 0x8A,
-    SERVER_SHUTTING_DOWN = 0x8B,
-    BAD_AUTHENTICATION_METHOD = 0x8C,
-    KEEP_ALIVE_TIMEOUT = 0x8D,
-    SESSION_TAKEN_OVER = 0x8E,
-    TOPIC_FILTER_INVALID = 0x8F,
-    TOPIC_NAME_INVALID = 0x90,
-    PACKET_IDENTIFIER_IN_USE = 0x91,
-    PACKET_IDENTIFIER_NOT_FOUND = 0x92,
-    RECEIVE_MAXIMUM_EXCEEDED = 0x93,
-    TOPIC_ALIAS_INVALID = 0x94,
-    PACKET_TOO_LARGE = 0x95,
-    MESSAGE_RATE_TOO_HIGH = 0x96,
-    QUOTA_EXCEEDED = 0x97,
-    ADMINISTRATIVE_ACTION = 0x98,
-    PAYLOAD_FORMAT_INVALID = 0x99,
-    RETAIN_NOT_SUPPORTED = 0x9A,
-    QOS_NOT_SUPPORTED = 0x9B,
-    USE_ANOTHER_SERVER = 0x9C,
-    SERVER_MOVED = 0x9D,
-    SHARED_SUBSCRIPTIONS_NOT_SUPPORTED = 0x9E,
-    CONNECTION_RATE_EXCEEDED = 0x9F,
-    MAXIMUM_CONNECT_TIME = 0xA0,
-    SUBSCRIPTION_IDENTIFIERS_NOT_SUPPORTED = 0xA1,
-    WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED = 0xA2
+    Success = 0x00,
+    GrantedQos1 = 0x01,
+    GrantedQos2 = 0x02,
+    DisconnectWithWillMessage = 0x04,
+    NoMatchingSubscribers = 0x10,
+    NoSubscriptionExisted = 0x11,
+    ContinueAuthentication = 0x18,
+    ReAuthenticate = 0x19,
+    UnspecifiedError = 0x80,
+    MalformedPacket = 0x81,
+    ProtocolError = 0x82,
+    ImplementationSpecificError = 0x83,
+    UnsupportedProtocolVersion = 0x84,
+    ClientIdentifierNotValid = 0x85,
+    BadUserNameOrPassword = 0x86,
+    NotAuthorized = 0x87,
+    ServerUnavailable = 0x88,
+    ServerBusy = 0x89,
+    Banned = 0x8A,
+    ServerShuttingDown = 0x8B,
+    BadAuthenticationMethod = 0x8C,
+    KeepAliveTimeout = 0x8D,
+    SessionTakenOver = 0x8E,
+    TopicFilterInvalid = 0x8F,
+    TopicNameInvalid = 0x90,
+    PacketIdentifierInUse = 0x91,
+    PacketIdentifierNotFound = 0x92,
+    ReceiveMaximumExceeded = 0x93,
+    TopicAliasInvalid = 0x94,
+    PacketTooLarge = 0x95,
+    MessageRateTooHigh = 0x96,
+    QuotaExceeded = 0x97,
+    AdministrativeAction = 0x98,
+    PayloadFormatInvalid = 0x99,
+    RetainNotSupported = 0x9A,
+    QosNotSupported = 0x9B,
+    UseAnotherServer = 0x9C,
+    ServerMoved = 0x9D,
+    SharedSubscriptionsNotSupported = 0x9E,
+    ConnectionRateExceeded = 0x9F,
+    MaximumConnectTime = 0xA0,
+    SubscriptionIdentifiersNotSupported = 0xA1,
+    WildcardSubscriptionsNotSupported = 0xA2
   }
 );
 
@@ -74,7 +74,7 @@ impl ReasonCode {
   /// let byte = DataType::parse_byte(&mut reader).unwrap();
   ///
   /// let reason_code = ReasonCode::new(byte).unwrap();
-  /// assert_eq!(reason_code, ReasonCode::NO_MATCHING_SUBSCRIBERS);
+  /// assert_eq!(reason_code, ReasonCode::NoMatchingSubscribers);
   /// assert_eq!(reason_code.to_u8().unwrap(), 0x10);
   /// ```
   ///
@@ -117,7 +117,7 @@ mod tests {
     let mut reader = io::BufReader::new(&bytes[..]);
     let byte = DataType::parse_byte(&mut reader).unwrap();
     let reason_code = super::ReasonCode::new(byte).unwrap();
-    assert_eq!(reason_code, super::ReasonCode::NO_MATCHING_SUBSCRIBERS);
+    assert_eq!(reason_code, super::ReasonCode::NoMatchingSubscribers);
     assert_eq!(reason_code.to_u8().unwrap(), 0x10);
   }
 
@@ -129,7 +129,7 @@ mod tests {
     let reason_code = super::ReasonCode::new(byte).unwrap();
     assert_eq!(
       reason_code,
-      super::ReasonCode::WILDCARD_SUBSCRIPTIONS_NOT_SUPPORTED
+      super::ReasonCode::WildcardSubscriptionsNotSupported
     );
     assert_eq!(reason_code.to_u8().unwrap(), 0xA2);
   }
