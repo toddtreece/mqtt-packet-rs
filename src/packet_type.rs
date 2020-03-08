@@ -56,7 +56,7 @@ impl PacketType {
   ///
   /// let err_bytes: Vec<u8> = vec![0x00, 0x01];
   /// let mut err_reader = io::BufReader::new(&err_bytes[..]);
-  /// let wrong_type = DataType::parse_byte(&mut err_reader).unwrap();
+  /// let wrong_type = DataType::parse_two_byte_int(&mut err_reader).unwrap();
   ///
   /// let err = PacketType::new(wrong_type).unwrap_err();
   /// assert_eq!(err, Error::ParseError)
@@ -114,7 +114,7 @@ mod tests {
   fn err_read() {
     let err_bytes: Vec<u8> = vec![0x00, 0x01];
     let mut err_reader = io::BufReader::new(&err_bytes[..]);
-    let byte = DataType::parse_byte(&mut err_reader).unwrap();
+    let byte = DataType::parse_two_byte_int(&mut err_reader).unwrap();
 
     let err = super::PacketType::new(byte).unwrap_err();
     assert_eq!(err, crate::Error::ParseError)

@@ -8,9 +8,11 @@ mod flags;
 mod macros;
 mod packet_type;
 mod property;
+mod reason_code;
 
 pub use data_type::{DataType, VariableByte};
 pub use error::Error;
 pub use flags::{Flags, GenericFlags, PublishFlags};
 pub use packet_type::PacketType;
 pub use property::{Identifier, Property};
+pub use reason_code::ReasonCode;
